@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "outDir": "dist/",
+    "sourceMap": true,
+    "target": "ES2020",
+    "listEmittedFiles": true,
+    "module": "CommonJS"
+  }
+}
