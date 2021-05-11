@@ -24,11 +24,10 @@
   },
   "homepage": "https://github.com/subramanian-elavathur/telegram-reminder-bot#readme",
   "devDependencies": {
-    "@types/express": "^4.17.11",
     "@types/node": "^15.0.2",
     "typescript": "^4.2.4"
   },
   "dependencies": {
-    "express": "^4.17.1"
+    "telegraf": "^4.3.0"
   }
 }

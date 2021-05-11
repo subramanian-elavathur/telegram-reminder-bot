@@ -1,12 +1,12 @@
-import express = require("express");
+const { Telegraf } = require("telegraf");
 
-const app = express();
-const port = 3000;
+const bot = new Telegraf(process.env.BOT_TOKEN);
+bot.start((ctx) => ctx.reply("Hello There"));
+bot.help((ctx) => ctx.reply("Send me a sticker"));
+bot.on("sticker", (ctx) => ctx.reply("👍"));
+bot.hears("hi", (ctx) => ctx.reply("Hey there"));
+bot.launch();
 
-app.get("/hello", (req, res) => {
-  res.send("Hello World!");
-});
-
-app.listen(port, () => {
-  console.log(`Visit http://localhost:${port}/hello for a message`);
-});
+// graceful stopping
+process.once("SIGINT", () => bot.stop("SIGINT"));
+process.once("SIGTERM", () => bot.stop("SIGTERM"));
