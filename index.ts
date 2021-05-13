@@ -5,7 +5,10 @@ bot.start((ctx) => ctx.reply("Hello There"));
 bot.help((ctx) => ctx.reply("Send me a sticker"));
 bot.on("sticker", (ctx) => ctx.reply("👍"));
 bot.hears("hi", (ctx) => ctx.reply("Hey there"));
-bot.hears("count me down", (ctx) => {
+bot.command("lucky", (ctx) => {
+  bot.telegram.sendDice(ctx.message.chat.id);
+});
+bot.command("countdown", (ctx) => {
   let counter = 5;
   let clr = setInterval(() => {
     bot.telegram.sendMessage(ctx.message.chat.id, counter);
