@@ -47,7 +47,7 @@ const startCountdown = (ctx) => {
     if (counter === 0) {
       bot.telegram.sendMessage(
         ctx.callbackQuery.message.chat.id,
-        "I did as you asked"
+        `I did as you asked ${ctx.callbackQuery.message.chat.first_name} ${ctx.callbackQuery.message.chat.last_name}`
       );
       clearInterval(clr);
     }
