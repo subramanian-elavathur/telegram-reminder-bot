@@ -1,6 +1,10 @@
+require("dotenv").config();
 const { Telegraf } = require("telegraf");
+const { Duration } = require("luxon");
 
-const draftChatReminders = new Set();
+const pendingReminderText = new Set();
+const pendingDuration = new Set();
+const reminderTexts = {};
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.start((ctx) => ctx.reply("Hello There"));
@@ -42,18 +46,41 @@ bot.on("callback_query", (ctx) => {
 
 bot.on("message", (ctx) => {
   const chatId = ctx.message.chat.id;
-  if (draftChatReminders.has(chatId)) {
-    setTimeout(() => {
-      bot.telegram.sendMessage(chatId, `REMINDER - ${ctx.message.text}`);
-    }, 10000);
-    bot.telegram.sendMessage(chatId, "Reminder set! Will remind in 10 sec");
-    draftChatReminders.delete(chatId);
+  const message = ctx.message.text;
+  if (pendingReminderText.has(chatId)) {
+    reminderTexts[chatId] = message;
+    bot.telegram.sendMessage(
+      chatId,
+      "When would you like me to remind you?\n\nGive me an ISO 8601 duration string\n\nDont know what this is?\nRead about it here: https://en.wikipedia.org/wiki/ISO_8601#Durations"
+    );
+    pendingReminderText.delete(chatId);
+    pendingDuration.add(chatId);
+  } else if (pendingDuration.has(chatId)) {
+    const duration = Duration.fromISO(message);
+    if (Object.keys(duration.toObject()).length === 0) {
+      bot.telegram.sendMessage(
+        chatId,
+        "That is not a valid duration OK! Try Again!\n\nGive me an ISO 8601 duration string\n\nDont know what this is?\nRead about it here: https://en.wikipedia.org/wiki/ISO_8601#Durations"
+      );
+    } else {
+      bot.telegram.sendMessage(
+        chatId,
+        `Kelzo will remind you about ${
+          reminderTexts[chatId]
+        } in ${JSON.stringify(duration.toObject())}`
+      );
+      const reminderText = reminderTexts[chatId];
+      setTimeout(() => {
+        bot.telegram.sendMessage(chatId, `REMINDER\n\n${reminderText}`);
+      }, duration.toMillis());
+      pendingDuration.delete(chatId);
+    }
   }
 });
 
 const remind = (ctx) => {
   const chatId = ctx.callbackQuery.message.chat.id;
-  draftChatReminders.add(chatId);
+  pendingReminderText.add(chatId);
   bot.telegram.sendMessage(
     ctx.callbackQuery.message.chat.id,
     "what would you like to be reminded of?"
