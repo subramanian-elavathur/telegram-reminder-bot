@@ -6,6 +6,33 @@ const pendingReminderText = new Set();
 const pendingDuration = new Set();
 const reminderTexts = {};
 
+interface ReminderLogEntry {
+  text: string;
+  chatId: number;
+}
+
+interface ReminderLog {
+  [key: number]: ReminderLogEntry[];
+}
+
+let reminderLog: ReminderLog = {
+  0: [],
+};
+
+let currentSecond = 0;
+
+const reminderDaemon = setInterval(() => {
+  console.log(`starting daemon at ${currentSecond}`);
+  const remindersToSend = reminderLog[currentSecond];
+  if (remindersToSend?.length > 0) {
+    console.log(JSON.stringify(remindersToSend));
+    remindersToSend.forEach((each) =>
+      bot.telegram.sendMessage(each.chatId, `REMINDER\n\n${each.text}`)
+    );
+  }
+  currentSecond = currentSecond + 1;
+}, 1000);
+
 const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.start((ctx) => ctx.reply("Hello There"));
 
@@ -70,9 +97,15 @@ bot.on("message", (ctx) => {
         } in ${JSON.stringify(duration.toObject())}`
       );
       const reminderText = reminderTexts[chatId];
-      setTimeout(() => {
-        bot.telegram.sendMessage(chatId, `REMINDER\n\n${reminderText}`);
-      }, duration.toMillis());
+      const timeKey = currentSecond + Math.ceil(duration.toMillis() / 1000); // to seconds and then upper limit
+      console.log(`TIMEKEY: ${timeKey}`);
+      const updatedReminders = reminderLog[timeKey]
+        ? [...reminderLog[timeKey], { chatId, text: reminderText }]
+        : [{ chatId, text: reminderText }];
+      reminderLog = {
+        ...reminderLog,
+        [timeKey]: updatedReminders,
+      };
       pendingDuration.delete(chatId);
     }
   }
