@@ -4,7 +4,9 @@ const { Duration } = require("luxon");
 
 const pendingReminderText = new Set();
 const pendingDuration = new Set();
+const pendingFrequency = new Set();
 const reminderTexts = {};
+const reminderDurations = {};
 
 interface ReminderLogEntry {
   text: string;
@@ -90,24 +92,47 @@ bot.on("message", (ctx) => {
         "That is not a valid duration OK! Try Again!\n\nGive me an ISO 8601 duration string\n\nDont know what this is?\nRead about it here: https://en.wikipedia.org/wiki/ISO_8601#Durations"
       );
     } else {
+      reminderDurations[chatId] = duration;
+      pendingDuration.delete(chatId);
       bot.telegram.sendMessage(
         chatId,
-        `Kelzo will remind you about ${
-          reminderTexts[chatId]
-        } in ${JSON.stringify(duration.toObject())}`
+        "How many times would you like me to remind you?"
       );
-      const reminderText = reminderTexts[chatId];
-      const timeKey = currentSecond + Math.ceil(duration.toMillis() / 1000); // to seconds and then upper limit
-      console.log(`TIMEKEY: ${timeKey}`);
-      const updatedReminders = reminderLog[timeKey]
-        ? [...reminderLog[timeKey], { chatId, text: reminderText }]
-        : [{ chatId, text: reminderText }];
-      reminderLog = {
-        ...reminderLog,
-        [timeKey]: updatedReminders,
-      };
-      pendingDuration.delete(chatId);
+      pendingFrequency.add(chatId);
     }
+  } else if (pendingFrequency.has(chatId)) {
+    const frequency = parseInt(message);
+    bot.telegram.sendMessage(
+      chatId,
+      `Kelzo will remind you about ${reminderTexts[chatId]} in ${JSON.stringify(
+        reminderDurations[chatId].toObject()
+      )}\n and will repeat ${isNaN(frequency) ? 0 : frequency} times`
+    );
+    const reminderText = reminderTexts[chatId];
+    const timeKey =
+      currentSecond + Math.ceil(reminderDurations[chatId].toMillis() / 1000); // to seconds and then upper limit
+    const timeKeys = isNaN(frequency)
+      ? [timeKey]
+      : Array(frequency)
+          .fill(0)
+          .map((each, index) => {
+            const recur =
+              Math.ceil(reminderDurations[chatId].toMillis() / 1000) *
+              (index + 1);
+            console.log(`TIMEKEY: ${currentSecond + recur}`);
+            return currentSecond + recur;
+          });
+    const transformedTimeKeys = timeKeys.reduce((acc, each) => {
+      const updatedReminders = reminderLog[each]
+        ? [...reminderLog[each], { chatId, text: reminderText }]
+        : [{ chatId, text: reminderText }];
+      acc[each] = updatedReminders;
+      return acc;
+    }, {});
+    reminderLog = {
+      ...reminderLog,
+      ...transformedTimeKeys,
+    };
   }
 });
 
