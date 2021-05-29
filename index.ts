@@ -1,3 +1,5 @@
+import { startConfigurator, parseResponse } from "./TimezoneConfigurator";
+
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
 const { Duration } = require("luxon");
@@ -40,26 +42,7 @@ bot.start((ctx) => {
   ctx.reply(
     "Hello there and thanks for checking out the telegram recurring reminders bot.\n\nI require your timezone information to be able to accurately remind you.\n\nPlease use the following use the buttons below this message to select your timezone."
   );
-  ctx.reply("Start by selecting your continent", {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: "Africa", callback_data: "timezone_Africa" },
-          { text: "America", callback_data: "timezone_America" },
-          { text: "Antarctica", callback_data: "timezone_Antarctica" },
-        ],
-        [
-          { text: "Asia", callback_data: "timezone_Asia" },
-          { text: "Europe", callback_data: "timezone_Europe" },
-          { text: "Atlantic", callback_data: "timezone_Atlantic" },
-        ],
-        [
-          { text: "Pacific", callback_data: "timezone_Pacific" },
-          { text: "Australia", callback_data: "timezone_Australia" },
-        ],
-      ],
-    },
-  });
+  startConfigurator(ctx);
 });
 
 bot.command("sup", (ctx) => {
@@ -91,38 +74,8 @@ bot.on("callback_query", (ctx) => {
     case "reminder":
       remind(ctx);
       break;
-    case "timezone_Asia":
-      ctx.editMessageText("Now select the city closest to you", {
-        inline_message_id: ctx.callbackQuery.id,
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "Kolkata", callback_data: "timezone_Asia_Kolkata" },
-              { text: "Mumbai", callback_data: "timezone_Asia_Mumbai" },
-              { text: "Bengaluru", callback_data: "timezone_Asia_Bengaluru" },
-            ],
-          ],
-        },
-      });
-      break;
-    case "timezone_Asia_Bengaluru":
-      ctx.editMessageText("Timezone has been set to Asia/Bengaluru", {
-        inline_message_id: ctx.callbackQuery.id,
-        reply_markup: {},
-      });
-      ctx.reply("So what would you like to do today", {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "countdown", callback_data: "countdown" },
-              { text: "lucky", callback_data: "lucky" },
-              { text: "reminder", callback_data: "reminder" },
-            ],
-          ],
-        },
-      });
-      break;
     default:
+      parseResponse(ctx.callbackQuery.data, ctx);
       break;
   }
   ctx.answerCbQuery();
