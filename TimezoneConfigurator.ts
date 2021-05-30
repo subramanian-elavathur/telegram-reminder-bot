@@ -1,68 +1,72 @@
 import { Context } from "telegraf";
 import TIMEZONES from "./IANATimezone";
+import * as chunk from "lodash.chunk";
 
-export const startConfigurator = (ctx: Context) =>
-  ctx.reply("Start by selecting your continent", {
+interface UserTimezone {
+  [key: number]: string;
+}
+
+const usersTimezone: UserTimezone = {};
+
+export const getUserId = (ctx: Context) => ctx.from.id;
+
+export const promptFeatures = (ctx: Context) => {
+  ctx.reply("So what would you like to do today", {
     reply_markup: {
       inline_keyboard: [
         [
-          { text: "Africa", callback_data: "timezone_Africa" },
-          { text: "America", callback_data: "timezone_America" },
-          { text: "Antarctica", callback_data: "timezone_Antarctica" },
-        ],
-        [
-          { text: "Asia", callback_data: "timezone_Asia" },
-          { text: "Europe", callback_data: "timezone_Europe" },
-          { text: "Atlantic", callback_data: "timezone_Atlantic" },
-        ],
-        [
-          { text: "Pacific", callback_data: "timezone_Pacific" },
-          { text: "Australia", callback_data: "timezone_Australia" },
+          { text: "countdown", callback_data: "countdown" },
+          { text: "reminder", callback_data: "reminder" },
         ],
       ],
     },
   });
+};
+
+export const startConfigurator = (ctx: Context) => {
+  const timezone = usersTimezone[getUserId(ctx)];
+  if (timezone) {
+    ctx.reply(`Timezone has been set to ${timezone}`);
+    promptFeatures(ctx);
+  } else {
+    ctx.reply("Start by selecting your continent", {
+      reply_markup: {
+        inline_keyboard: chunk(
+          Object.keys(TIMEZONES).map((each) => ({
+            text: each,
+            callback_data: `timezone-${each}`,
+          })),
+          3
+        ),
+      },
+    });
+  }
+};
 
 export const parseResponse = (message: string, ctx: any) => {
-  const split = message.split("_");
-  if (split.length === 2) {
-    const locations = TIMEZONES[split[1]];
+  const instruction = message.split("-");
+  if (instruction.length === 2) {
+    const locations = TIMEZONES[instruction[1]];
     const keyboard = locations.map((each) => {
-      const test = each.split("/");
+      const [continent, city] = each.split("/");
       return {
-        text: test[1],
-        callback_data: "timezone_" + test[0] + "_" + test[1],
+        text: city,
+        callback_data: "timezone-" + continent + "-" + city,
       };
     });
-    let i,
-      j,
-      chunk = 4;
-    const formatted = [];
-    for (i = 0, j = keyboard.length; i < j; i += chunk) {
-      formatted.push(keyboard.slice(i, i + chunk));
-    }
-
     ctx.editMessageText("Now select the city closest to you", {
       inline_message_id: ctx.callbackQuery.id,
       reply_markup: {
-        inline_keyboard: formatted,
+        inline_keyboard: chunk(keyboard, 4),
       },
     });
   } else {
-    ctx.editMessageText(`Timezone has been set to ${split[1]}/${split[2]}`, {
+    const timezone = `${instruction[1]}/${instruction[2]}`;
+    usersTimezone[getUserId(ctx)] = timezone;
+    ctx.editMessageText(`Timezone has been set to ${timezone}`, {
       inline_message_id: ctx.callbackQuery.id,
       reply_markup: {},
     });
-    ctx.reply("So what would you like to do today", {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "countdown", callback_data: "countdown" },
-            { text: "lucky", callback_data: "lucky" },
-            { text: "reminder", callback_data: "reminder" },
-          ],
-        ],
-      },
-    });
+    promptFeatures(ctx);
   }
 };

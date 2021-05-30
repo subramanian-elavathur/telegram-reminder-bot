@@ -1,4 +1,5 @@
 import { startConfigurator, parseResponse } from "./TimezoneConfigurator";
+import countdown from "./countdown";
 
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
@@ -45,31 +46,10 @@ bot.start((ctx) => {
   startConfigurator(ctx);
 });
 
-bot.command("sup", (ctx) => {
-  bot.telegram.sendMessage(
-    ctx.message.chat.id,
-    "So what would you like to do today",
-    {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "countdown", callback_data: "countdown" },
-            { text: "lucky", callback_data: "lucky" },
-            { text: "reminder", callback_data: "reminder" },
-          ],
-        ],
-      },
-    }
-  );
-});
-
 bot.on("callback_query", (ctx) => {
   switch (ctx.callbackQuery.data) {
-    case "lucky":
-      makeLucky(ctx);
-      break;
     case "countdown":
-      startCountdown(ctx);
+      countdown(ctx);
       break;
     case "reminder":
       remind(ctx);
@@ -151,27 +131,6 @@ const remind = (ctx) => {
     ctx.callbackQuery.message.chat.id,
     "what would you like to be reminded of?"
   );
-};
-
-const makeLucky = (ctx) => {
-  bot.telegram.sendDice(ctx.callbackQuery.message.chat.id, {
-    reply_markup: { remove_keyboard: true },
-  });
-};
-
-const startCountdown = (ctx) => {
-  let counter = 5;
-  let clr = setInterval(() => {
-    bot.telegram.sendMessage(ctx.callbackQuery.message.chat.id, counter);
-    counter = counter - 1;
-    if (counter === 0) {
-      bot.telegram.sendMessage(
-        ctx.callbackQuery.message.chat.id,
-        `I did as you asked ${ctx.callbackQuery.message.chat.first_name} ${ctx.callbackQuery.message.chat.last_name}`
-      );
-      clearInterval(clr);
-    }
-  }, 1000);
 };
 
 bot.launch();
