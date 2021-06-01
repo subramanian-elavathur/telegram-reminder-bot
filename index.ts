@@ -1,5 +1,6 @@
 import { startConfigurator, parseResponse } from "./TimezoneConfigurator";
 import countdown from "./countdown";
+import { parseWhenClauseInSpec } from "./reminders";
 
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
@@ -68,13 +69,13 @@ bot.on("message", (ctx) => {
     reminderTexts[chatId] = message;
     bot.telegram.sendMessage(
       chatId,
-      "When would you like me to remind you?\n\nGive me an ISO 8601 duration string\n\nDont know what this is?\nRead about it here: https://en.wikipedia.org/wiki/ISO_8601#Durations"
+      "When would you like me to remind you?\n\nSpecify duration as follows 'In 2 years 3 days 4 seconds'"
     );
     pendingReminderText.delete(chatId);
     pendingDuration.add(chatId);
   } else if (pendingDuration.has(chatId)) {
-    const duration = Duration.fromISO(message);
-    if (Object.keys(duration.toObject()).length === 0) {
+    const duration = parseWhenClauseInSpec(message);
+    if (duration && Object.keys(duration.toObject()).length === 0) {
       bot.telegram.sendMessage(
         chatId,
         "That is not a valid duration OK! Try Again!\n\nGive me an ISO 8601 duration string\n\nDont know what this is?\nRead about it here: https://en.wikipedia.org/wiki/ISO_8601#Durations"
