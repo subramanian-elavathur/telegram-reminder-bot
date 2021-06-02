@@ -1,6 +1,10 @@
-import { startConfigurator, parseResponse } from "./TimezoneConfigurator";
+import {
+  startConfigurator,
+  parseResponse,
+  getTimezone,
+} from "./TimezoneConfigurator";
 import countdown from "./countdown";
-import { parseWhenClauseInSpec } from "./reminders";
+import { remindClause } from "./reminders";
 
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
@@ -69,12 +73,12 @@ bot.on("message", (ctx) => {
     reminderTexts[chatId] = message;
     bot.telegram.sendMessage(
       chatId,
-      "When would you like me to remind you?\n\nSpecify duration as follows 'In 2 years 3 days 4 seconds'"
+      "When would you like me to remind you?\n\nFor example 'In 2 years 3 days 4 seconds' or 'On 13-06-2022 at 11:45'"
     );
     pendingReminderText.delete(chatId);
     pendingDuration.add(chatId);
   } else if (pendingDuration.has(chatId)) {
-    const duration = parseWhenClauseInSpec(message);
+    const duration = remindClause(message, getTimezone(ctx));
     if (duration && Object.keys(duration.toObject()).length === 0) {
       bot.telegram.sendMessage(
         chatId,

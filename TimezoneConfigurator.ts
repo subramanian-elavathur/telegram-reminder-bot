@@ -10,6 +10,9 @@ const usersTimezone: UserTimezone = {};
 
 export const getUserId = (ctx: Context) => ctx.from.id;
 
+export const getTimezone = (ctx: Context): string =>
+  usersTimezone[getUserId(ctx)];
+
 export const promptFeatures = (ctx: Context) => {
   ctx.reply("So what would you like to do today", {
     reply_markup: {
