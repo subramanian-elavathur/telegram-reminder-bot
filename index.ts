@@ -8,7 +8,6 @@ import { remindClause } from "./reminders";
 
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
-const { Duration } = require("luxon");
 
 const pendingReminderText = new Set();
 const pendingDuration = new Set();
