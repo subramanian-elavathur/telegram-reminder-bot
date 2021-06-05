@@ -1,4 +1,5 @@
 import { Duration, DateTime } from "luxon";
+import { RRule } from "rrule";
 
 const NUMBER = /\d+/g;
 const IN_YEARS = /\d+ years/g;
@@ -15,10 +16,28 @@ export const remindClause = (spec: string, timezone: string): Duration => {
     return parseWhenClauseInSpec(spec);
   } else if (spec.toLowerCase().startsWith("on")) {
     return parseWhenClauseOnSpec(spec, timezone);
+  } else if (spec.toLowerCase().startsWith("every")) {
+    return parseWhenClauseEverySpec(spec, timezone);
   }
+  return null;
 };
 
-export const parseWhenClauseOnSpec = (spec: string, zone: string): Duration => {
+export const parseWhenClauseEverySpec = (
+  spec: string,
+  timezone: string
+): Duration[] => {
+  const options = RRule.parseText(spec);
+  options.tzid = timezone;
+  options.until = DateTime.local().plus({ days: 1 }).toJSDate();
+  const rule = new RRule(options);
+  const all = rule.all();
+  return all.map((each) => DateTime.fromISO(each.toISOString()).diffNow());
+};
+
+export const parseWhenClauseOnSpec = (
+  spec: string,
+  zone: string
+): Duration[] => {
   let day, month, year, hour, minute, second;
   let matched = spec.match(ON_DATE);
   if (matched && matched.length > 0) {
@@ -45,26 +64,30 @@ export const parseWhenClauseOnSpec = (spec: string, zone: string): Duration => {
     }
   }
 
-  return DateTime.fromObject({
-    year,
-    month,
-    day,
-    hour,
-    minute,
-    second,
-    zone,
-  }).diffNow();
+  return [
+    DateTime.fromObject({
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      zone,
+    }).diffNow(),
+  ];
 };
 
-export const parseWhenClauseInSpec = (spec: string): Duration => {
-  return Duration.fromObject({
-    years: inValueExtractor(spec, IN_YEARS),
-    months: inValueExtractor(spec, IN_MONTHS),
-    days: inValueExtractor(spec, IN_DAYS),
-    hours: inValueExtractor(spec, IN_HOURS),
-    minutes: inValueExtractor(spec, IN_MINUTES),
-    seconds: inValueExtractor(spec, IN_SECONDS),
-  });
+export const parseWhenClauseInSpec = (spec: string): Duration[] => {
+  return [
+    Duration.fromObject({
+      years: inValueExtractor(spec, IN_YEARS),
+      months: inValueExtractor(spec, IN_MONTHS),
+      days: inValueExtractor(spec, IN_DAYS),
+      hours: inValueExtractor(spec, IN_HOURS),
+      minutes: inValueExtractor(spec, IN_MINUTES),
+      seconds: inValueExtractor(spec, IN_SECONDS),
+    }),
+  ];
 };
 
 const inValueExtractor = (spec: string, regex: RegExp) => {

@@ -5,15 +5,14 @@ import {
 } from "./TimezoneConfigurator";
 import countdown from "./countdown";
 import { remindClause } from "./reminders";
+import { Duration, DateTime } from "luxon";
 
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
 
 const pendingReminderText = new Set();
 const pendingDuration = new Set();
-const pendingFrequency = new Set();
 const reminderTexts = {};
-const reminderDurations = {};
 
 interface ReminderLogEntry {
   text: string;
@@ -45,7 +44,9 @@ const reminderDaemon = setInterval(() => {
 const bot = new Telegraf(process.env.BOT_TOKEN);
 bot.start((ctx) => {
   ctx.reply(
-    "Hello there and thanks for checking out the telegram recurring reminders bot.\n\nI require your timezone information to be able to accurately remind you.\n\nPlease use the following use the buttons below this message to select your timezone."
+    `Hello there and thanks for checking out the telegram recurring reminders bot.
+    \n\nI require your timezone information to be able to accurately remind you.
+    \n\nPlease use the following use the buttons below this message to select your timezone.`
   );
   startConfigurator(ctx);
 });
@@ -72,59 +73,43 @@ bot.on("message", (ctx) => {
     reminderTexts[chatId] = message;
     bot.telegram.sendMessage(
       chatId,
-      "When would you like me to remind you?\n\nFor example 'In 2 years 3 days 4 seconds' or 'On 13-06-2022 at 11:45'"
+      `When would you like me to remind you?
+      \nFor example 'In 2 years 3 days 4 seconds'\nor 'On 13-06-2022 at 11:45'\nor 'Every weekday'`
     );
     pendingReminderText.delete(chatId);
     pendingDuration.add(chatId);
   } else if (pendingDuration.has(chatId)) {
-    const duration = remindClause(message, getTimezone(ctx));
-    if (duration && Object.keys(duration.toObject()).length === 0) {
-      bot.telegram.sendMessage(
-        chatId,
-        "That is not a valid duration OK! Try Again!\n\nGive me an ISO 8601 duration string\n\nDont know what this is?\nRead about it here: https://en.wikipedia.org/wiki/ISO_8601#Durations"
-      );
-    } else {
-      reminderDurations[chatId] = duration;
+    const durations = remindClause(message, getTimezone(ctx));
+    if (durations && durations.length > 0) {
       pendingDuration.delete(chatId);
       bot.telegram.sendMessage(
         chatId,
-        "How many times would you like me to remind you?"
+        `Kelzo will remind you about ${reminderTexts[chatId]}`
       );
-      pendingFrequency.add(chatId);
+      const reminderText = reminderTexts[chatId];
+      const timeKeys = durations.map((each) => {
+        const recur = Math.ceil(each.toMillis() / 1000);
+        console.log(`TIMEKEY: ${currentSecond + recur}`);
+        return currentSecond + recur;
+      });
+      const transformedTimeKeys = timeKeys.reduce((acc, each) => {
+        const updatedReminders = reminderLog[each]
+          ? [...reminderLog[each], { chatId, text: reminderText }]
+          : [{ chatId, text: reminderText }];
+        acc[each] = updatedReminders;
+        return acc;
+      }, {});
+      reminderLog = {
+        ...reminderLog,
+        ...transformedTimeKeys,
+      };
+    } else {
+      bot.telegram.sendMessage(
+        chatId,
+        `That is not a valid spec OK! Try Again!
+        \nFor example 'In 2 years 3 days 4 seconds'\nor 'On 13-06-2022 at 11:45'\nor 'Every weekday'`
+      );
     }
-  } else if (pendingFrequency.has(chatId)) {
-    const frequency = parseInt(message);
-    bot.telegram.sendMessage(
-      chatId,
-      `Kelzo will remind you about ${reminderTexts[chatId]} in ${JSON.stringify(
-        reminderDurations[chatId].toObject()
-      )}\n and will repeat ${isNaN(frequency) ? 0 : frequency} times`
-    );
-    const reminderText = reminderTexts[chatId];
-    const timeKey =
-      currentSecond + Math.ceil(reminderDurations[chatId].toMillis() / 1000); // to seconds and then upper limit
-    const timeKeys = isNaN(frequency)
-      ? [timeKey]
-      : Array(frequency)
-          .fill(0)
-          .map((each, index) => {
-            const recur =
-              Math.ceil(reminderDurations[chatId].toMillis() / 1000) *
-              (index + 1);
-            console.log(`TIMEKEY: ${currentSecond + recur}`);
-            return currentSecond + recur;
-          });
-    const transformedTimeKeys = timeKeys.reduce((acc, each) => {
-      const updatedReminders = reminderLog[each]
-        ? [...reminderLog[each], { chatId, text: reminderText }]
-        : [{ chatId, text: reminderText }];
-      acc[each] = updatedReminders;
-      return acc;
-    }, {});
-    reminderLog = {
-      ...reminderLog,
-      ...transformedTimeKeys,
-    };
   }
 });
 
