@@ -3,14 +3,11 @@ import {
   parseResponse,
   getTimezone,
 } from "./TimezoneConfigurator";
-import countdown from "./countdown";
 import { remindClause } from "./reminders";
-import { Duration, DateTime } from "luxon";
 
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
 
-const pendingReminderText = new Set();
 const pendingDuration = new Set();
 const reminderTexts = {};
 
@@ -42,43 +39,16 @@ const reminderDaemon = setInterval(() => {
 }, 1000);
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.start((ctx) => {
-  ctx.reply(
-    `Hello there and thanks for checking out the telegram recurring reminders bot.
-    \n\nI require your timezone information to be able to accurately remind you.
-    \n\nPlease use the following use the buttons below this message to select your timezone.`
-  );
-  startConfigurator(ctx);
-});
 
 bot.on("callback_query", (ctx) => {
-  switch (ctx.callbackQuery.data) {
-    case "countdown":
-      countdown(ctx);
-      break;
-    case "reminder":
-      remind(ctx);
-      break;
-    default:
-      parseResponse(ctx.callbackQuery.data, ctx);
-      break;
-  }
+  parseResponse(ctx.callbackQuery.data, ctx);
   ctx.answerCbQuery();
 });
 
 bot.on("message", (ctx) => {
   const chatId = ctx.message.chat.id;
   const message = ctx.message.text;
-  if (pendingReminderText.has(chatId)) {
-    reminderTexts[chatId] = message;
-    bot.telegram.sendMessage(
-      chatId,
-      `When would you like me to remind you?
-      \nFor example 'In 2 years 3 days 4 seconds'\nor 'On 13-06-2022 at 11:45'\nor 'Every weekday'`
-    );
-    pendingReminderText.delete(chatId);
-    pendingDuration.add(chatId);
-  } else if (pendingDuration.has(chatId)) {
+  if (pendingDuration.has(chatId)) {
     const durations = remindClause(message, getTimezone(ctx));
     if (durations && durations.length > 0) {
       pendingDuration.delete(chatId);
@@ -110,17 +80,19 @@ bot.on("message", (ctx) => {
         \nFor example 'In 2 years 3 days 4 seconds'\nor 'On 13-06-2022 at 11:45'\nor 'Every weekday'`
       );
     }
+  } else {
+    // users are trying to start a conversation with the bot
+    reminderTexts[chatId] = message;
+    if (startConfigurator(ctx)) {
+      bot.telegram.sendMessage(
+        chatId,
+        `When would you like me to remind you of ${message}?
+        \nYou can reply with 'In 2 years 3 days 4 seconds'\nor 'On 13-06-2022 at 11:45'\nor 'Every weekday'`
+      );
+    }
+    pendingDuration.add(chatId);
   }
 });
-
-const remind = (ctx) => {
-  const chatId = ctx.callbackQuery.message.chat.id;
-  pendingReminderText.add(chatId);
-  bot.telegram.sendMessage(
-    ctx.callbackQuery.message.chat.id,
-    "what would you like to be reminded of?"
-  );
-};
 
 bot.launch();
 

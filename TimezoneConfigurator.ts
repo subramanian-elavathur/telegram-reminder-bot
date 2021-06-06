@@ -13,36 +13,27 @@ export const getUserId = (ctx: Context) => ctx.from.id;
 export const getTimezone = (ctx: Context): string =>
   usersTimezone[getUserId(ctx)];
 
-export const promptFeatures = (ctx: Context) => {
-  ctx.reply("So what would you like to do today", {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: "countdown", callback_data: "countdown" },
-          { text: "reminder", callback_data: "reminder" },
-        ],
-      ],
-    },
-  });
-};
-
 export const startConfigurator = (ctx: Context) => {
   const timezone = usersTimezone[getUserId(ctx)];
   if (timezone) {
     ctx.reply(`Timezone has been set to ${timezone}`);
-    promptFeatures(ctx);
+    return true;
   } else {
-    ctx.reply("Start by selecting your continent", {
-      reply_markup: {
-        inline_keyboard: chunk(
-          Object.keys(TIMEZONES).map((each) => ({
-            text: each,
-            callback_data: `timezone-${each}`,
-          })),
-          3
-        ),
-      },
-    });
+    ctx.reply(
+      "Thanks to remind you of this I need you to specify your timezone. Start by selecting your continent",
+      {
+        reply_markup: {
+          inline_keyboard: chunk(
+            Object.keys(TIMEZONES).map((each) => ({
+              text: each,
+              callback_data: `timezone-${each}`,
+            })),
+            3
+          ),
+        },
+      }
+    );
+    return false;
   }
 };
 
@@ -70,6 +61,9 @@ export const parseResponse = (message: string, ctx: any) => {
       inline_message_id: ctx.callbackQuery.id,
       reply_markup: {},
     });
-    promptFeatures(ctx);
+    ctx.reply(
+      `When would you like me to remind you?
+      \nYou can reply with 'In 2 years 3 days 4 seconds'\nor 'On 13-06-2022 at 11:45'\nor 'Every weekday'`
+    );
   }
 };
