@@ -1,7 +1,7 @@
 import { Duration, DateTime } from "luxon";
 import { RRule } from "rrule";
 
-const NUMBER = /\d+/g;
+export const NUMBER = /\d+/g;
 const IN_YEARS = /\d+ years/g;
 const IN_MONTHS = /\d+ months/g;
 const IN_DAYS = /\d+ days/g;
