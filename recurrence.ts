@@ -13,6 +13,10 @@ const examples = [
 
 const TIME_SPEC = /(?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)/;
 
+const EVERY_SECOND = /every second/;
+
+const EVERY_MINUTE = /every minute/;
+
 const EVERY_HOUR = /every hour/;
 
 const EVERY_DAY_AT =
@@ -205,13 +209,18 @@ const parse = (spec: string, timezone: string): DateTime[] => {
     freq = RRule.YEARLY;
   } else if (EVERY_HOUR.test(spec)) {
     freq = RRule.HOURLY;
+  } else if (EVERY_MINUTE.test(spec)) {
+    freq = RRule.MINUTELY;
+  } else if (EVERY_SECOND.test(spec)) {
+    freq = RRule.SECONDLY;
   } else {
     console.log("Unsupported format");
   }
   const rrule = new RRule({
     freq,
     ...getDefaults(timezone),
-    ...getDayOccurence(spec),
+    bysetpos:
+      freq !== RRule.SECONDLY ? getDayOccurence(spec).bysetpos : undefined,
     ...extractMonthDay(spec),
     ...extractMonth(spec),
     ...extractWeekDay(spec),
@@ -221,6 +230,10 @@ const parse = (spec: string, timezone: string): DateTime[] => {
   return [];
 };
 
+console.log("\nEVERY SECOND\n");
+parse("every second", "America/New_York");
+console.log("\nEVERY MINUTE\n");
+parse("every minute", "America/New_York");
 console.log("\nEVERY HOUR\n");
 parse("every hour", "America/New_York");
 console.log("\nEVERY DAY\n");
