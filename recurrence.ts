@@ -13,6 +13,8 @@ const examples = [
 
 const TIME_SPEC = /(?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)/;
 
+const EVERY_HOUR = /every hour/;
+
 const EVERY_DAY_AT =
   /every day at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)/;
 
@@ -201,6 +203,8 @@ const parse = (spec: string, timezone: string): DateTime[] => {
     freq = RRule.MONTHLY;
   } else if (EVERY_YEAR_ON.test(spec)) {
     freq = RRule.YEARLY;
+  } else if (EVERY_HOUR.test(spec)) {
+    freq = RRule.HOURLY;
   } else {
     console.log("Unsupported format");
   }
@@ -213,15 +217,14 @@ const parse = (spec: string, timezone: string): DateTime[] => {
     ...extractWeekDay(spec),
     ...extractTime(spec),
   });
-  rrule
-    .all()
-    .map((each) => DateTime.fromISO(each.toISOString()))
-    .forEach((each) => console.log(each.toString()));
+  rrule.all().forEach((each) => console.log(each.toISOString()));
   return [];
 };
 
+console.log("\nEVERY HOUR\n");
+parse("every hour", "America/New_York");
 console.log("\nEVERY DAY\n");
-parse("every day at 12:30", "Asia/Kolkata");
+parse("every day at 12:30", "America/New_York");
 console.log("\nEVERY WEEK\n");
 parse("every week on friday at 12:30", "Asia/Kolkata");
 console.log("\nEVERY MONTH 1\n");
