@@ -11,25 +11,28 @@ const examples = [
   "every year on 15th december at 12:30",
 ];
 
+// taken from https://stackoverflow.com/questions/15491894/regex-to-validate-date-format-dd-mm-yyyy
+const UNTIL_SPEC = /until \d+-\d+-\d+/;
+
 const TIME_SPEC = /(?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)/;
 
-const EVERY_SECOND = /every second/;
+const EVERY_SECOND = /every second( until \d+-\d+-\d+)?/;
 
-const EVERY_MINUTE = /every minute/;
+const EVERY_MINUTE = /every minute( until \d+-\d+-\d+)?/;
 
-const EVERY_HOUR = /every hour/;
+const EVERY_HOUR = /every hour( until \d+-\d+-\d+)?/;
 
 const EVERY_DAY_AT =
-  /every day at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)/;
+  /every day at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)( until \d+-\d+-\d+)?/;
 
 const EVERY_WEEK_ON =
-  /every week on (monday|tuesday|wednesday|thursday|friday|saturday|sunday)( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?/;
+  /every week on (monday|tuesday|wednesday|thursday|friday|saturday|sunday)( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
 
 const EVERY_MONTH_ON =
-  /every month on the (\d+(th|rd|st|nd)|((first|second|third|fourth|fifth) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)))( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?/;
+  /every month on the (\d+(th|rd|st|nd)|((first|second|third|fourth|fifth) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)))( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
 
 const EVERY_YEAR_ON =
-  /every year on( the)? \d+(th|rd|st|nd) of (jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?/;
+  /every year on( the)? \d+(th|rd|st|nd) of (jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
 
 const DAY_OCCURENCE = /(first|second|third|fourth|fifth)/;
 
@@ -45,6 +48,23 @@ const getDefaults = (timezone: string): { tzid: string; count: number } => {
     tzid: timezone,
     count: 30, // default for 30 days
   };
+};
+
+const getUntil = (spec: string, timezone: string): { until?: Date } => {
+  const until = spec.match(UNTIL_SPEC);
+  if (until?.length) {
+    const [day, month, year] = until[0].match(NUMBER);
+    const dateTime = DateTime.fromObject({
+      year,
+      month,
+      day,
+      zone: timezone,
+    });
+    return {
+      until: dateTime.toJSDate(),
+    };
+  }
+  return {};
 };
 
 const getDayOccurence = (spec: string): { bysetpos?: number } => {
@@ -225,19 +245,20 @@ const parse = (spec: string, timezone: string): DateTime[] => {
     ...extractMonth(spec),
     ...extractWeekDay(spec),
     ...extractTime(spec),
+    ...getUntil(spec, timezone),
   });
   rrule.all().forEach((each) => console.log(each.toISOString()));
   return [];
 };
 
 console.log("\nEVERY SECOND\n");
-parse("every second", "America/New_York");
+parse("every second", "Asia/Kolkata");
 console.log("\nEVERY MINUTE\n");
-parse("every minute", "America/New_York");
+parse("every minute", "Asia/Kolkata");
 console.log("\nEVERY HOUR\n");
-parse("every hour", "America/New_York");
+parse("every hour", "Asia/Kolkata");
 console.log("\nEVERY DAY\n");
-parse("every day at 12:30", "America/New_York");
+parse("every day at 12:30", "Asia/Kolkata");
 console.log("\nEVERY WEEK\n");
 parse("every week on friday at 12:30", "Asia/Kolkata");
 console.log("\nEVERY MONTH 1\n");
@@ -246,3 +267,5 @@ console.log("\nEVERY MONTH 2\n");
 parse("every month on the 13th at 11:30", "Asia/Kolkata");
 console.log("\nEVERY YEAR\n");
 parse("every year on the 13th of august at 11:30", "Asia/Kolkata");
+console.log("\nEVERY DAY UNTIL\n");
+parse("every day at 12:30 until 25-06-2021", "Asia/Kolkata");
