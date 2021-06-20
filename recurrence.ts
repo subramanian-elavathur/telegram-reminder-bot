@@ -1,4 +1,4 @@
-import { DateTime } from "luxon";
+import { DateTime, Duration } from "luxon";
 import { RRule, Weekday } from "rrule";
 import { NUMBER } from "./reminders";
 
@@ -217,7 +217,8 @@ const extractMonth = (spec: string): { bymonth?: number[] } => {
   };
 };
 
-const parse = (spec: string, timezone: string): DateTime[] => {
+export const recur = (specRaw: string, timezone: string): Duration[] => {
+  const spec = specRaw.toLowerCase();
   let freq = undefined;
   if (EVERY_DAY_AT.test(spec)) {
     freq = RRule.DAILY;
@@ -247,25 +248,36 @@ const parse = (spec: string, timezone: string): DateTime[] => {
     ...extractTime(spec),
     ...getUntil(spec, timezone),
   });
-  rrule.all().forEach((each) => console.log(each.toISOString()));
-  return [];
+  return rrule.all().map((each) => {
+    return DateTime.fromObject({
+      year: each.getFullYear(),
+      month: each.getMonth() + 1, // https://stackoverflow.com/questions/18624326/getmonth-in-javascript-gives-previous-month
+      day: each.getDate(),
+      hour: each.getHours(),
+      minute: each.getMinutes(),
+      second: each.getSeconds(),
+      zone: timezone,
+    }).diffNow();
+  });
 };
 
-console.log("\nEVERY SECOND\n");
-parse("every second", "Asia/Kolkata");
-console.log("\nEVERY MINUTE\n");
-parse("every minute", "Asia/Kolkata");
-console.log("\nEVERY HOUR\n");
-parse("every hour", "Asia/Kolkata");
-console.log("\nEVERY DAY\n");
-parse("every day at 12:30", "Asia/Kolkata");
-console.log("\nEVERY WEEK\n");
-parse("every week on friday at 12:30", "Asia/Kolkata");
-console.log("\nEVERY MONTH 1\n");
-parse("every month on the third friday at 11:30", "Asia/Kolkata");
-console.log("\nEVERY MONTH 2\n");
-parse("every month on the 13th at 11:30", "Asia/Kolkata");
-console.log("\nEVERY YEAR\n");
-parse("every year on the 13th of august at 11:30", "Asia/Kolkata");
-console.log("\nEVERY DAY UNTIL\n");
-parse("every day at 12:30 until 25-06-2021", "Asia/Kolkata");
+// tests
+
+// console.log("\nEVERY SECOND\n");
+// recur("every second", "Asia/Kolkata");
+// console.log("\nEVERY MINUTE\n");
+// recur("every minute", "Asia/Kolkata");
+// console.log("\nEVERY HOUR\n");
+// recur("every hour", "Asia/Kolkata");
+// console.log("\nEVERY DAY\n");
+// recur("every day at 12:30", "Asia/Kolkata");
+// console.log("\nEVERY WEEK\n");
+// recur("every week on friday at 12:30", "Asia/Kolkata");
+// console.log("\nEVERY MONTH 1\n");
+// recur("every month on the third friday at 11:30", "Asia/Kolkata");
+// console.log("\nEVERY MONTH 2\n");
+// recur("every month on the 13th at 11:30", "Asia/Kolkata");
+// console.log("\nEVERY YEAR\n");
+// recur("every year on the 13th of august at 11:30", "Asia/Kolkata");
+// console.log("\nEVERY DAY UNTIL\n");
+// recur("every day at 12:30 until 25-06-2021", "Asia/Kolkata");

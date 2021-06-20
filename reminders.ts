@@ -1,5 +1,5 @@
 import { Duration, DateTime } from "luxon";
-import { RRule } from "rrule";
+import { recur } from "./recurrence";
 
 export const NUMBER = /\d+/g;
 const IN_YEARS = /\d+ years/g;
@@ -17,21 +17,9 @@ export const remindClause = (spec: string, timezone: string): Duration => {
   } else if (spec.toLowerCase().startsWith("on")) {
     return parseWhenClauseOnSpec(spec, timezone);
   } else if (spec.toLowerCase().startsWith("every")) {
-    return parseWhenClauseEverySpec(spec, timezone);
+    return recur(spec, timezone);
   }
   return null;
-};
-
-export const parseWhenClauseEverySpec = (
-  spec: string,
-  timezone: string
-): Duration[] => {
-  const options = RRule.parseText(spec);
-  options.tzid = timezone;
-  options.until = DateTime.local().plus({ days: 1 }).toJSDate();
-  const rule = new RRule(options);
-  const all = rule.all();
-  return all.map((each) => DateTime.fromISO(each.toISOString()).diffNow());
 };
 
 export const parseWhenClauseOnSpec = (
