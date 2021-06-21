@@ -45,11 +45,11 @@ bot.on("callback_query", (ctx) => {
   ctx.answerCbQuery();
 });
 
-bot.on("message", (ctx) => {
+bot.on("message", async (ctx) => {
   const chatId = ctx.message.chat.id;
   const message = ctx.message.text;
   if (pendingDuration.has(chatId)) {
-    const durations = remindClause(message, getTimezone(ctx));
+    const durations = remindClause(message, await getTimezone(ctx));
     if (durations && durations.length > 0) {
       pendingDuration.delete(chatId);
       bot.telegram.sendMessage(

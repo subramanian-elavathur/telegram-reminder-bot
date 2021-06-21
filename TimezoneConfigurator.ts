@@ -1,20 +1,17 @@
 import { Context } from "telegraf";
 import TIMEZONES from "./IANATimezone";
 import * as chunk from "lodash.chunk";
+import { LocalDB, SimpleLocalDB } from "./local-db";
 
-interface UserTimezone {
-  [key: number]: string;
-}
+const usersTimezone: LocalDB = new SimpleLocalDB("unused");
 
-const usersTimezone: UserTimezone = {};
+export const getUserId = (ctx: Context) => ctx.from.id.toString();
 
-export const getUserId = (ctx: Context) => ctx.from.id;
+export const getTimezone = async (ctx: Context): Promise<any> =>
+  await usersTimezone.get(getUserId(ctx));
 
-export const getTimezone = (ctx: Context): string =>
-  usersTimezone[getUserId(ctx)];
-
-export const startConfigurator = (ctx: Context) => {
-  const timezone = usersTimezone[getUserId(ctx)];
+export const startConfigurator = async (ctx: Context) => {
+  const timezone = await usersTimezone.get(getUserId(ctx));
   if (timezone) {
     ctx.reply(`Timezone has been set to ${timezone}`);
     return true;
@@ -37,7 +34,7 @@ export const startConfigurator = (ctx: Context) => {
   }
 };
 
-export const parseResponse = (message: string, ctx: any) => {
+export const parseResponse = async (message: string, ctx: any) => {
   const instruction = message.split("-");
   if (instruction.length === 2) {
     const locations = TIMEZONES[instruction[1]];
@@ -56,7 +53,7 @@ export const parseResponse = (message: string, ctx: any) => {
     });
   } else {
     const timezone = `${instruction[1]}/${instruction[2]}`;
-    usersTimezone[getUserId(ctx)] = timezone;
+    await usersTimezone.set(getUserId(ctx), timezone);
     ctx.editMessageText(`Timezone has been set to ${timezone}`, {
       inline_message_id: ctx.callbackQuery.id,
       reply_markup: {},
