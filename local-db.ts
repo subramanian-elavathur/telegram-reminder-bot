@@ -1,28 +1,85 @@
-export interface LocalDB {
-  get: (key: string) => Promise<any>;
-  set: (key: string, value: any) => Promise<boolean>;
-}
-
+const fs = require("fs/promises");
 interface Data {
   [key: string]: any;
 }
-
-// this implementation will incrementally evolve to become file based
-export class SimpleLocalDB implements LocalDB {
+export class SimpleLocalDB {
   #localDir: string;
   #data: Data;
 
   constructor(localDir: string) {
     this.#localDir = localDir;
     this.#data = {};
+    this.init();
   }
 
-  get(key) {
-    return Promise.resolve(this.#data[key]);
+  async init() {
+    console.log(`Checking if specified path ${this.#localDir} exists`);
+    let stat;
+    try {
+      stat = await fs.stat(this.#localDir);
+    } catch (e) {
+      console.log(`Directory does not exist - will create`);
+      await fs.mkdir(this.#localDir, { recursive: true });
+      console.log(`Directory created, lets go!`);
+    }
+    if (stat) {
+      if (!stat.isDirectory()) {
+        throw new Error(
+          `Specified path ${
+            this.#localDir
+          } exists but is not a directory. Exiting`
+        );
+      } else {
+        console.log(`Directory already exists, lets go!`);
+      }
+    }
   }
 
-  set(key, value) {
+  async exists(key: string): Promise<boolean> {
+    const keyPath = this.getKeyPath(key);
+    console.log(`Checking if specified key path ${this.#localDir} exists`);
+    let stat;
+    try {
+      stat = await fs.stat(keyPath);
+    } catch (e) {
+      console.log(`key path ${keyPath} does not exist`);
+      return Promise.resolve(false);
+    }
+    console.log(`checking if key path ${keyPath} is a file`);
+    if (stat && stat.isFile()) {
+      console.log(`Key path ${keyPath} is a file, awesome!`);
+      return Promise.resolve(true);
+    } else {
+      console.log(
+        `Key path ${keyPath} is not a file! You may not be able to set a value for this key.`
+      );
+      return Promise.resolve(false);
+    }
+  }
+
+  async get(key: string): Promise<any> {
+    const exists = await this.exists(key);
+    if (exists) {
+      const data = await fs.readFile(this.getKeyPath(key), {
+        encoding: "utf8",
+      });
+      return Promise.resolve(JSON.parse(data));
+    }
+    return Promise.resolve(undefined);
+  }
+
+  getKeyPath(key: string): string {
+    return `${this.#localDir}/${key}.json`;
+  }
+
+  async set(key: string, value: any): Promise<boolean> {
     this.#data[key] = value;
-    return Promise.resolve(true);
+    try {
+      await fs.writeFile(this.getKeyPath(key), JSON.stringify(value));
+      return Promise.resolve(true);
+    } catch (e) {
+      console.log(`Error setting value, received exception ${e}`);
+      Promise.resolve(false);
+    }
   }
 }
