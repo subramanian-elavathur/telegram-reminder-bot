@@ -2,10 +2,9 @@ import { Context } from "telegraf";
 import TIMEZONES from "./IANATimezone";
 import * as chunk from "lodash.chunk";
 import { SimpleLocalDB } from "./local-db";
+require("dotenv").config();
 
-const usersTimezone = new SimpleLocalDB(
-  "D:/projects/telegram-reminder-bot/data/timezones"
-);
+const usersTimezone = new SimpleLocalDB(process.env.TIMEZONE_DB_DIRECTORY);
 
 export const getUserId = (ctx: Context) => ctx.from.id.toString();
 

@@ -4,6 +4,7 @@ import {
   getTimezone,
 } from "./TimezoneConfigurator";
 import { remindClause } from "./reminders";
+import { SimpleLocalDB } from "./local-db";
 
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
@@ -16,19 +17,15 @@ interface ReminderLogEntry {
   chatId: number;
 }
 
-interface ReminderLog {
-  [key: number]: ReminderLogEntry[];
-}
-
-let reminderLog: ReminderLog = {
-  0: [],
-};
+const reminderLog = new SimpleLocalDB(process.env.REMINDERS_DB_DIRECTORY);
 
 let currentSecond = 0;
 
-const reminderDaemon = setInterval(() => {
+const reminderDaemon = setInterval(async () => {
   console.log(`starting daemon at ${currentSecond}`);
-  const remindersToSend = reminderLog[currentSecond];
+  const remindersToSend: ReminderLogEntry[] = await reminderLog.get(
+    currentSecond.toString()
+  );
   if (remindersToSend?.length > 0) {
     console.log(JSON.stringify(remindersToSend));
     remindersToSend.forEach((each) =>
@@ -62,17 +59,15 @@ bot.on("message", async (ctx) => {
         console.log(`TIMEKEY: ${currentSecond + recur}`);
         return currentSecond + recur;
       });
-      const transformedTimeKeys = timeKeys.reduce((acc, each) => {
-        const updatedReminders = reminderLog[each]
-          ? [...reminderLog[each], { chatId, text: reminderText }]
+      timeKeys.forEach(async (each) => {
+        const existingReminders: ReminderLogEntry[] = await reminderLog.get(
+          each.toString()
+        );
+        const updatedReminders = existingReminders
+          ? [...existingReminders, { chatId, text: reminderText }]
           : [{ chatId, text: reminderText }];
-        acc[each] = updatedReminders;
-        return acc;
-      }, {});
-      reminderLog = {
-        ...reminderLog,
-        ...transformedTimeKeys,
-      };
+        reminderLog.set(each.toString(), updatedReminders);
+      });
     } else {
       bot.telegram.sendMessage(
         chatId,
