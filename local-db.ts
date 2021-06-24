@@ -37,15 +37,12 @@ export class SimpleLocalDB {
 
   async exists(key: string): Promise<boolean> {
     const keyPath = this.getKeyPath(key);
-    console.log(`Checking if specified key path ${this.#localDir} exists`);
     let stat;
     try {
       stat = await fs.stat(keyPath);
     } catch (e) {
-      console.log(`key path ${keyPath} does not exist`);
       return Promise.resolve(false);
     }
-    console.log(`checking if key path ${keyPath} is a file`);
     if (stat && stat.isFile()) {
       console.log(`Key path ${keyPath} is a file, awesome!`);
       return Promise.resolve(true);

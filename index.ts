@@ -30,13 +30,15 @@ const reminderDaemon = setInterval(async () => {
   if (remindersToSend?.length > 0) {
     console.log(JSON.stringify(remindersToSend));
     remindersToSend.forEach((each) =>
-      bot.telegram.sendMessage(each.chatId, `REMINDER\n\n${each.text}`)
+      bot.telegram.sendMessage(each.chatId, each.text)
     );
   }
   currentSecond = currentSecond + 1;
 }, 1000);
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+
+bot.start((ctx) => ctx.reply("What would you like to be reminded of?"));
 
 bot.command("help", (ctx) => {
   ctx.reply(
