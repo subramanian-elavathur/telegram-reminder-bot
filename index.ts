@@ -5,6 +5,7 @@ import {
 } from "./TimezoneConfigurator";
 import { remindClause } from "./reminders";
 import { SimpleLocalDB } from "./local-db";
+import { DateTime } from "luxon";
 
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
@@ -19,7 +20,7 @@ interface ReminderLogEntry {
 
 const reminderLog = new SimpleLocalDB(process.env.REMINDERS_DB_DIRECTORY);
 
-let currentSecond = 0;
+let currentSecond = Math.floor(DateTime.now().toMillis() / 1000);
 
 const reminderDaemon = setInterval(async () => {
   console.log(`starting daemon at ${currentSecond}`);
