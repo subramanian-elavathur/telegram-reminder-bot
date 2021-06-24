@@ -82,4 +82,17 @@ export class SimpleLocalDB {
       Promise.resolve(false);
     }
   }
+
+  async unset(key: string): Promise<boolean> {
+    const exists = await this.exists(key);
+    if (exists) {
+      try {
+        await fs.rm(this.getKeyPath(key));
+        return Promise.resolve(true);
+      } catch (e) {
+        return Promise.resolve(false);
+      }
+    }
+    return Promise.resolve(true);
+  }
 }

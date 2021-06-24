@@ -13,29 +13,35 @@ export const getTimezone = async (ctx: Context): Promise<any> =>
 
 export const startConfigurator = async (ctx: Context) => {
   const timezone = await usersTimezone.get(getUserId(ctx));
-  if (timezone) {
-    ctx.reply(`Timezone has been set to ${timezone}`);
-    return true;
-  } else {
+  if (!timezone) {
     ctx.reply(
       "Thanks to remind you of this I need you to specify your timezone. Start by selecting your continent",
-      {
-        reply_markup: {
-          inline_keyboard: chunk(
-            Object.keys(TIMEZONES).map((each) => ({
-              text: each,
-              callback_data: `timezone-${each}`,
-            })),
-            3
-          ),
-        },
-      }
+      getContinentsInlineKeyboard()
     );
-    return false;
   }
 };
 
+const getContinentsInlineKeyboard = () => ({
+  reply_markup: {
+    inline_keyboard: chunk(
+      Object.keys(TIMEZONES).map((each) => ({
+        text: each,
+        callback_data: `timezone-${each}`,
+      })),
+      3
+    ),
+  },
+});
+
 export const parseResponse = async (message: string, ctx: any) => {
+  if (message === "reset-timezone") {
+    await usersTimezone.unset(getUserId(ctx));
+    ctx.reply(
+      "Start by selecting your continent",
+      getContinentsInlineKeyboard()
+    );
+    return;
+  }
   const instruction = message.split("-");
   if (instruction.length === 2) {
     const locations = TIMEZONES[instruction[1]];
@@ -59,9 +65,5 @@ export const parseResponse = async (message: string, ctx: any) => {
       inline_message_id: ctx.callbackQuery.id,
       reply_markup: {},
     });
-    ctx.reply(
-      `When would you like me to remind you?
-      \nYou can reply with 'In 2 years 3 days 4 seconds'\nor 'On 13-06-2022 at 11:45'\nor 'Every weekday'`
-    );
   }
 };

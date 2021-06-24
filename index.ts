@@ -38,6 +38,24 @@ const reminderDaemon = setInterval(async () => {
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+bot.command("help", (ctx) => {
+  ctx.reply(
+    `Welcome to the Recurring Reminders Bot.\nJust send it a message with what you would like to be reminded of.\nAnd then you tell the bot when you would like to be reminded - thats all!.\nYou can also use the menu below to change your settings`,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "Change your timezone",
+              callback_data: `reset-timezone`,
+            },
+          ],
+        ],
+      },
+    }
+  );
+});
+
 bot.on("callback_query", (ctx) => {
   parseResponse(ctx.callbackQuery.data, ctx);
   ctx.answerCbQuery();
