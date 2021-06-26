@@ -12,14 +12,18 @@ const ON_DATE = /\d+-\d+-\d+/g;
 const ON_TIME = /\d+:\d+(:\d+)?/g;
 
 export const remindClause = (spec: string, timezone: string): Duration => {
-  if (spec.toLowerCase().startsWith("in")) {
-    return parseWhenClauseInSpec(spec);
-  } else if (spec.toLowerCase().startsWith("on")) {
-    return parseWhenClauseOnSpec(spec, timezone);
-  } else if (spec.toLowerCase().startsWith("every")) {
-    return recur(spec, timezone);
+  try {
+    // prevent failures
+    if (spec.toLowerCase().startsWith("in")) {
+      return parseWhenClauseInSpec(spec);
+    } else if (spec.toLowerCase().startsWith("on")) {
+      return parseWhenClauseOnSpec(spec, timezone);
+    } else if (spec.toLowerCase().startsWith("every")) {
+      return recur(spec, timezone);
+    }
+  } catch (e) {
+    return null;
   }
-  return null;
 };
 
 export const parseWhenClauseOnSpec = (

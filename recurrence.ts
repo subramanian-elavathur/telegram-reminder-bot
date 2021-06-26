@@ -14,25 +14,27 @@ const examples = [
 // taken from https://stackoverflow.com/questions/15491894/regex-to-validate-date-format-dd-mm-yyyy
 const UNTIL_SPEC = /until \d+-\d+-\d+/;
 
+const INTERVAL_SPEC = /every \d+/;
+
 const TIME_SPEC = /(?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)/;
 
-const EVERY_SECOND = /every second( until \d+-\d+-\d+)?/;
+const EVERY_SECOND = /every( \d+)? second(s)?( until \d+-\d+-\d+)?/;
 
-const EVERY_MINUTE = /every minute( until \d+-\d+-\d+)?/;
+const EVERY_MINUTE = /every( \d+)? minute(s)?( until \d+-\d+-\d+)?/;
 
-const EVERY_HOUR = /every hour( until \d+-\d+-\d+)?/;
+const EVERY_HOUR = /every( \d+)? hour(s)?( until \d+-\d+-\d+)?/;
 
 const EVERY_DAY_AT =
-  /every day at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)( until \d+-\d+-\d+)?/;
+  /every( \d+)? day(s)? at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)( until \d+-\d+-\d+)?/;
 
 const EVERY_WEEK_ON =
-  /every week on (monday|tuesday|wednesday|thursday|friday|saturday|sunday)( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
+  /every( \d+)? week(s)? on (monday|tuesday|wednesday|thursday|friday|saturday|sunday)( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
 
 const EVERY_MONTH_ON =
-  /every month on the (\d+(th|rd|st|nd)|((first|second|third|fourth|fifth) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)))( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
+  /every( \d+)? month(s)? on the (\d+(th|rd|st|nd)|((first|second|third|fourth|fifth) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)))( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
 
 const EVERY_YEAR_ON =
-  /every year on( the)? \d+(th|rd|st|nd) of (jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
+  /every( \d+)? year(s)? on( the)? \d+(th|rd|st|nd) of (jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
 
 const DAY_OCCURENCE = /(first|second|third|fourth|fifth)/;
 
@@ -43,9 +45,8 @@ const MONTH_DAY = /\d+(th|rd|st|nd)/;
 const MONTH =
   /(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)/;
 
-const getDefaults = (timezone: string): { tzid: string; count: number } => {
+const getDefaults = (): { count: number } => {
   return {
-    tzid: timezone,
     count: 30, // default for 30 days
   };
 };
@@ -115,6 +116,19 @@ const getRRuleWeekDay = (day: string): Weekday | undefined => {
     default:
       return undefined;
   }
+};
+
+const extractInterval = (spec: string): { interval?: number } => {
+  let output = {};
+  const intervalString = spec.match(INTERVAL_SPEC);
+  if (intervalString?.length) {
+    const [interval] = intervalString[0].match(NUMBER);
+    const parsedInterval = parseInt(interval);
+    output = {
+      interval: isNaN(parsedInterval) ? undefined : parsedInterval,
+    };
+  }
+  return output;
 };
 
 const extractTime = (
@@ -239,13 +253,14 @@ export const recur = (specRaw: string, timezone: string): Duration[] => {
   }
   const rrule = new RRule({
     freq,
-    ...getDefaults(timezone),
+    ...getDefaults(),
     bysetpos:
       freq !== RRule.SECONDLY ? getDayOccurence(spec).bysetpos : undefined,
     ...extractMonthDay(spec),
     ...extractMonth(spec),
     ...extractWeekDay(spec),
     ...extractTime(spec),
+    ...extractInterval(spec),
     ...getUntil(spec, timezone),
   });
   return rrule.all().map((each) => {

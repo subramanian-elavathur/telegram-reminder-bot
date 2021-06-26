@@ -22,8 +22,9 @@ const reminderLog = new SimpleLocalDB(process.env.REMINDERS_DB_DIRECTORY);
 
 let currentSecond = Math.floor(DateTime.now().toMillis() / 1000);
 
+console.log(`Current system time in epoch seconds is: ${currentSecond}`);
+
 const reminderDaemon = setInterval(async () => {
-  console.log(`starting daemon at ${currentSecond}`);
   const remindersToSend: ReminderLogEntry[] = await reminderLog.get(
     currentSecond.toString()
   );
