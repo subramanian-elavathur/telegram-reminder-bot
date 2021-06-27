@@ -1,22 +1,12 @@
-import { DateTime, Duration } from "luxon";
+import { DateTime } from "luxon";
 import { RRule, Weekday } from "rrule";
 import { NUMBER } from "./reminders";
 
-const examples = [
-  // todo add for every hour/minute/second as well then expand for until clause
-  "every day at hh:mm:ss",
-  "every week on [M|T|W|T|F|S|S].* at hh:mm:ss",
-  "every month on (the d+)? [(first|second|third|fourth|fifth) (M|T|W|T|F|S|S]) at hh:mm:ss",
-  "every year on (d+ Jan/Feb/Mar/Apr/May/Jun/Jul/Aug/Sep/Oct/Nov/Dec) | ([first-fifth] [day]) of [month] at hh:mm:ss",
-  "every year on 15th december at 12:30",
-];
-
-// taken from https://stackoverflow.com/questions/15491894/regex-to-validate-date-format-dd-mm-yyyy
 const UNTIL_SPEC = /until \d+-\d+-\d+/;
 
 const INTERVAL_SPEC = /every \d+/;
 
-const TIME_SPEC = /(?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)/;
+const TIME_SPEC = /(?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?)/;
 
 const EVERY_SECOND = /every( \d+)? second(s)?( until \d+-\d+-\d+)?/;
 
@@ -25,16 +15,16 @@ const EVERY_MINUTE = /every( \d+)? minute(s)?( until \d+-\d+-\d+)?/;
 const EVERY_HOUR = /every( \d+)? hour(s)?( until \d+-\d+-\d+)?/;
 
 const EVERY_DAY_AT =
-  /every( \d+)? day(s)? at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d)( until \d+-\d+-\d+)?/;
+  /every( \d+)? day(s)?( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until \d+-\d+-\d+)?/;
 
 const EVERY_WEEK_ON =
-  /every( \d+)? week(s)? on (monday|tuesday|wednesday|thursday|friday|saturday|sunday)( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
+  /every( \d+)? week(s)? on (monday|tuesday|wednesday|thursday|friday|saturday|sunday)( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until \d+-\d+-\d+)?/;
 
 const EVERY_MONTH_ON =
-  /every( \d+)? month(s)? on the (\d+(th|rd|st|nd)|((first|second|third|fourth|fifth) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)))( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
+  /every( \d+)? month(s)? on the (\d+(th|rd|st|nd)|((first|second|third|fourth|fifth) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)))( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until \d+-\d+-\d+)?/;
 
 const EVERY_YEAR_ON =
-  /every( \d+)? year(s)? on( the)? \d+(th|rd|st|nd) of (jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)( at (?:(?:([01]?\d|2[0-3]):)?([0-5]?\d):)?([0-5]?\d))?( until \d+-\d+-\d+)?/;
+  /every( \d+)? year(s)? on( the)? \d+(th|rd|st|nd) of (jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until \d+-\d+-\d+)?/;
 
 const DAY_OCCURENCE = /(first|second|third|fourth|fifth)/;
 
@@ -45,8 +35,9 @@ const MONTH_DAY = /\d+(th|rd|st|nd)/;
 const MONTH =
   /(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)/;
 
-const getDefaults = (): { count: number } => {
+const getDefaults = (zone: string): { tzid: string; count: number } => {
   return {
+    tzid: zone,
     count: 30, // default for 30 days
   };
 };
@@ -231,7 +222,7 @@ const extractMonth = (spec: string): { bymonth?: number[] } => {
   };
 };
 
-export const recur = (specRaw: string, timezone: string): Duration[] => {
+export const recur = (specRaw: string, timezone: string): number[] => {
   const spec = specRaw.toLowerCase();
   let freq = undefined;
   if (EVERY_DAY_AT.test(spec)) {
@@ -253,7 +244,7 @@ export const recur = (specRaw: string, timezone: string): Duration[] => {
   }
   const rrule = new RRule({
     freq,
-    ...getDefaults(),
+    ...getDefaults(timezone),
     bysetpos:
       freq !== RRule.SECONDLY ? getDayOccurence(spec).bysetpos : undefined,
     ...extractMonthDay(spec),
@@ -263,36 +254,5 @@ export const recur = (specRaw: string, timezone: string): Duration[] => {
     ...extractInterval(spec),
     ...getUntil(spec, timezone),
   });
-  return rrule.all().map((each) => {
-    return DateTime.fromObject({
-      year: each.getFullYear(),
-      month: each.getMonth() + 1, // https://stackoverflow.com/questions/18624326/getmonth-in-javascript-gives-previous-month
-      day: each.getDate(),
-      hour: each.getHours(),
-      minute: each.getMinutes(),
-      second: each.getSeconds(),
-      zone: timezone,
-    }).diffNow();
-  });
+  return rrule.all().map((each) => each.valueOf() - DateTime.now().toMillis());
 };
-
-// tests
-
-// console.log("\nEVERY SECOND\n");
-// recur("every second", "Asia/Kolkata");
-// console.log("\nEVERY MINUTE\n");
-// recur("every minute", "Asia/Kolkata");
-// console.log("\nEVERY HOUR\n");
-// recur("every hour", "Asia/Kolkata");
-// console.log("\nEVERY DAY\n");
-// recur("every day at 12:30", "Asia/Kolkata");
-// console.log("\nEVERY WEEK\n");
-// recur("every week on friday at 12:30", "Asia/Kolkata");
-// console.log("\nEVERY MONTH 1\n");
-// recur("every month on the third friday at 11:30", "Asia/Kolkata");
-// console.log("\nEVERY MONTH 2\n");
-// recur("every month on the 13th at 11:30", "Asia/Kolkata");
-// console.log("\nEVERY YEAR\n");
-// recur("every year on the 13th of august at 11:30", "Asia/Kolkata");
-// console.log("\nEVERY DAY UNTIL\n");
-// recur("every day at 12:30 until 25-06-2021", "Asia/Kolkata");

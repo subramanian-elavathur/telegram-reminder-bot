@@ -11,7 +11,7 @@ const IN_SECONDS = /\d+ seconds/g;
 const ON_DATE = /\d+-\d+-\d+/g;
 const ON_TIME = /\d+:\d+(:\d+)?/g;
 
-export const remindClause = (spec: string, timezone: string): Duration => {
+export const remindClause = (spec: string, timezone: string): number[] => {
   try {
     // prevent failures
     if (spec.toLowerCase().startsWith("in")) {
@@ -22,6 +22,7 @@ export const remindClause = (spec: string, timezone: string): Duration => {
       return recur(spec, timezone);
     }
   } catch (e) {
+    console.error(e);
     return null;
   }
 };
@@ -65,7 +66,9 @@ export const parseWhenClauseOnSpec = (
       minute,
       second,
       zone,
-    }).diffNow(),
+    })
+      .diffNow()
+      .toMillis(),
   ];
 };
 
@@ -78,7 +81,7 @@ export const parseWhenClauseInSpec = (spec: string): Duration[] => {
       hours: inValueExtractor(spec, IN_HOURS),
       minutes: inValueExtractor(spec, IN_MINUTES),
       seconds: inValueExtractor(spec, IN_SECONDS),
-    }),
+    }).toMillis(),
   ];
 };
 

@@ -71,13 +71,10 @@ bot.on("message", async (ctx) => {
     const durations = remindClause(message, await getTimezone(ctx));
     if (durations && durations.length > 0) {
       pendingDuration.delete(chatId);
-      bot.telegram.sendMessage(
-        chatId,
-        `Kelzo will remind you about ${reminderTexts[chatId]}`
-      );
+      bot.telegram.sendMessage(chatId, "Reminder Set!");
       const reminderText = reminderTexts[chatId];
       const timeKeys = durations.map((each) => {
-        const recur = Math.ceil(each.toMillis() / 1000);
+        const recur = Math.ceil(each / 1000);
         console.log(`TIMEKEY: ${currentSecond + recur}`);
         return currentSecond + recur;
       });
