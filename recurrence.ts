@@ -253,19 +253,5 @@ export const recur = (specRaw: string, timezone: string): number[] => {
     ...extractInterval(spec),
     ...getUntil(spec, timezone),
   });
-  return rrule.all().map((each) => {
-    console.log(each.toISOString());
-    console.log(each.valueOf());
-    const datetime = DateTime.fromObject({
-      year: each.getFullYear(),
-      month: each.getMonth() + 1, // https://stackoverflow.com/questions/18624326/getmonth-in-javascript-gives-previous-month
-      day: each.getDate(),
-      hour: each.getHours(),
-      minute: each.getMinutes(),
-      second: each.getSeconds(),
-      zone: timezone,
-    });
-    console.log(DateTime.utc().toMillis());
-    return each.valueOf() - DateTime.utc().toMillis();
-  });
+  return rrule.all().map((each) => each.valueOf() - DateTime.utc().toMillis());
 };
