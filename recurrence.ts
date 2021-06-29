@@ -252,7 +252,6 @@ export const recur = (specRaw: string, timezone: string): number[] => {
     ...extractTime(spec),
     ...extractInterval(spec),
     ...getUntil(spec, timezone),
-    tzid: "Asia/Kolkata",
   });
   return rrule.all().map((each) => {
     console.log(each.toISOString());
