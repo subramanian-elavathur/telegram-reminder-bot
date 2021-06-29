@@ -22,14 +22,11 @@ const reminderLog = new SimpleLocalDB(process.env.REMINDERS_DB_DIRECTORY);
 
 let currentSecond = Math.floor(DateTime.now().toMillis() / 1000);
 
-console.log(`Current system time in epoch seconds is: ${currentSecond}`);
-
 const reminderDaemon = setInterval(async () => {
   const remindersToSend: ReminderLogEntry[] = await reminderLog.get(
     currentSecond.toString()
   );
   if (remindersToSend?.length > 0) {
-    console.log(JSON.stringify(remindersToSend));
     remindersToSend.forEach((each) =>
       bot.telegram.sendMessage(each.chatId, each.text)
     );

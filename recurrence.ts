@@ -35,9 +35,8 @@ const MONTH_DAY = /\d+(th|rd|st|nd)/;
 const MONTH =
   /(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)/;
 
-const getDefaults = (zone: string): { tzid: string; count: number } => {
+const getDefaults = (): { count: number } => {
   return {
-    tzid: zone,
     count: 30, // default for 30 days
   };
 };
@@ -244,7 +243,7 @@ export const recur = (specRaw: string, timezone: string): number[] => {
   }
   const rrule = new RRule({
     freq,
-    ...getDefaults(timezone),
+    ...getDefaults(),
     bysetpos:
       freq !== RRule.SECONDLY ? getDayOccurence(spec).bysetpos : undefined,
     ...extractMonthDay(spec),
@@ -254,5 +253,16 @@ export const recur = (specRaw: string, timezone: string): number[] => {
     ...extractInterval(spec),
     ...getUntil(spec, timezone),
   });
-  return rrule.all().map((each) => each.valueOf() - DateTime.now().toMillis());
+  return rrule.all().map((each) => {
+    const datetime = DateTime.fromObject({
+      year: each.getFullYear(),
+      month: each.getMonth() + 1, // https://stackoverflow.com/questions/18624326/getmonth-in-javascript-gives-previous-month
+      day: each.getDate(),
+      hour: each.getHours(),
+      minute: each.getMinutes(),
+      second: each.getSeconds(),
+      zone: timezone,
+    });
+    return datetime.toMillis() - DateTime.now().toMillis();
+  });
 };
