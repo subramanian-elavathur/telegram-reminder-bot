@@ -5,6 +5,7 @@ import {
 } from "./TimezoneConfigurator";
 import { remindClause } from "./reminders";
 import { SimpleLocalDB } from "./local-db";
+import { updateTracker } from "./tracker";
 import { DateTime } from "luxon";
 
 require("dotenv").config();
@@ -65,7 +66,8 @@ bot.on("message", async (ctx) => {
   const chatId = ctx.message.chat.id;
   const message = ctx.message.text;
   if (pendingDuration.has(chatId)) {
-    const durations = remindClause(message, await getTimezone(ctx));
+    const timezone = await getTimezone(ctx);
+    const durations = remindClause(message, timezone);
     if (durations && durations.length > 0) {
       pendingDuration.delete(chatId);
       bot.telegram.sendMessage(chatId, "Reminder Set!");
@@ -84,6 +86,7 @@ bot.on("message", async (ctx) => {
           : [{ chatId, text: reminderText }];
         reminderLog.set(each.toString(), updatedReminders);
       });
+      updateTracker(chatId, timeKeys, reminderText, timezone);
     } else {
       bot.telegram.sendMessage(
         chatId,
