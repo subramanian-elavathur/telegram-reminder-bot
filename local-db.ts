@@ -1,10 +1,9 @@
 const fs = require("fs/promises");
-interface Data {
-  [key: string]: any;
-}
-export class SimpleLocalDB {
+export class SimpleLocalDB<Type> {
   #localDir: string;
-  #data: Data;
+  #data: {
+    [key: string]: Type;
+  };
 
   constructor(localDir: string) {
     this.#localDir = localDir;
@@ -54,7 +53,7 @@ export class SimpleLocalDB {
     }
   }
 
-  async get(key: string): Promise<any> {
+  async get(key: string): Promise<Type> {
     const exists = await this.exists(key);
     if (exists) {
       const data = await fs.readFile(this.getKeyPath(key), {
@@ -69,7 +68,7 @@ export class SimpleLocalDB {
     return `${this.#localDir}/${key}.json`;
   }
 
-  async set(key: string, value: any): Promise<boolean> {
+  async set(key: string, value: Type): Promise<boolean> {
     this.#data[key] = value;
     try {
       await fs.writeFile(this.getKeyPath(key), JSON.stringify(value));

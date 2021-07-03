@@ -19,7 +19,9 @@ interface ReminderLogEntry {
   chatId: number;
 }
 
-const reminderLog = new SimpleLocalDB(process.env.REMINDERS_DB_DIRECTORY);
+const reminderLog = new SimpleLocalDB<ReminderLogEntry[]>(
+  process.env.REMINDERS_DB_DIRECTORY
+);
 
 let currentSecond = Math.floor(DateTime.now().toMillis() / 1000);
 

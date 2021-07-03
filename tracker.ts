@@ -1,6 +1,12 @@
 import { SimpleLocalDB } from "./local-db";
 
-const tracker = new SimpleLocalDB(process.env.TRACKER_DB_DIRECTORY);
+interface Tracker {
+  duration: number;
+  reminderText: string;
+  timezone: string;
+}
+
+const tracker = new SimpleLocalDB<Tracker[]>(process.env.TRACKER_DB_DIRECTORY);
 
 export const updateTracker = async (
   user: string,
