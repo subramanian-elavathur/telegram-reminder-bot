@@ -76,7 +76,6 @@ bot.on("message", async (ctx) => {
       const reminderText = reminderTexts[chatId];
       const timeKeys = durations.map((each) => {
         const recur = Math.ceil(each / 1000);
-        console.log(`TIMEKEY: ${currentSecond + recur}`);
         return currentSecond + recur;
       });
       timeKeys.forEach(async (each) => {

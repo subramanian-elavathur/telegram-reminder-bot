@@ -43,7 +43,6 @@ export class SimpleLocalDB<Type> {
       return Promise.resolve(false);
     }
     if (stat && stat.isFile()) {
-      console.log(`Key path ${keyPath} is a file, awesome!`);
       return Promise.resolve(true);
     } else {
       console.log(

@@ -2,6 +2,8 @@ import { DateTime } from "luxon";
 import { RRule, Weekday } from "rrule";
 import { NUMBER } from "./reminders";
 
+const UTC = "utc"; // utc everything
+
 const UNTIL_SPEC = /until \d+-\d+-\d+/;
 
 const INTERVAL_SPEC = /every \d+/;
@@ -52,7 +54,7 @@ const getUntil = (spec: string, timezone: string): { until?: Date } => {
       zone: timezone,
     });
     return {
-      until: dateTime.toJSDate(),
+      until: dateTime.setZone(UTC).toJSDate(),
     };
   }
   return {};
@@ -121,8 +123,21 @@ const extractInterval = (spec: string): { interval?: number } => {
   return output;
 };
 
+const convertTimeToLocalTimeZone = (
+  zone: string,
+  hour?: number,
+  minute?: number,
+  second?: number
+): DateTime => {
+  return DateTime.fromObject({ hour, minute, second, zone }).setZone(UTC);
+};
+
+const defaultIfNaN = (value?: number): number | undefined =>
+  isNaN(value) ? undefined : value;
+
 const extractTime = (
-  spec: string
+  spec: string,
+  zone: string
 ):
   | { byhour?: [number]; byminute?: [number]; bysecond?: [number] }
   | undefined => {
@@ -132,10 +147,16 @@ const extractTime = (
     const parsedHour = parseInt(hour);
     const parsedMinute = parseInt(minute);
     const parsedSecond = parseInt(second);
+    const convertedTime = convertTimeToLocalTimeZone(
+      zone,
+      defaultIfNaN(parsedHour),
+      defaultIfNaN(parsedMinute),
+      defaultIfNaN(parsedSecond)
+    );
     return {
-      byhour: isNaN(parsedHour) ? undefined : [parsedHour],
-      byminute: isNaN(parsedMinute) ? undefined : [parsedMinute],
-      bysecond: isNaN(parsedSecond) ? undefined : [parsedSecond],
+      byhour: [convertedTime.hour],
+      byminute: [convertedTime.minute],
+      bysecond: [convertedTime.second],
     };
   }
   return undefined;
@@ -249,7 +270,7 @@ export const recur = (specRaw: string, timezone: string): number[] => {
     ...extractMonthDay(spec),
     ...extractMonth(spec),
     ...extractWeekDay(spec),
-    ...extractTime(spec),
+    ...extractTime(spec, timezone),
     ...extractInterval(spec),
     ...getUntil(spec, timezone),
   });
