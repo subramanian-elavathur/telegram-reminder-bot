@@ -4,29 +4,35 @@ import { NUMBER } from "./reminders";
 
 const UTC = "utc"; // utc everything
 
-const UNTIL_SPEC = /until \d+-\d+-\d+/;
+const UNTIL_SPEC =
+  /until( \d+-\d+-\d+)?( (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?/;
 
 const INTERVAL_SPEC = /every \d+/;
 
 const TIME_SPEC = /(?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?)/;
 
-const EVERY_SECOND = /every( \d+)? second(s)?( until \d+-\d+-\d+)?/;
+const DATE_SPEC = /\d+-\d+-\d+/;
 
-const EVERY_MINUTE = /every( \d+)? minute(s)?( until \d+-\d+-\d+)?/;
+const EVERY_SECOND =
+  /every( \d+)? second(s)?( until( \d+-\d+-\d+)?( (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?)?/;
 
-const EVERY_HOUR = /every( \d+)? hour(s)?( until \d+-\d+-\d+)?/;
+const EVERY_MINUTE =
+  /every( \d+)? minute(s)?( until( \d+-\d+-\d+)?( (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?)?/;
+
+const EVERY_HOUR =
+  /every( \d+)? hour(s)?( until( \d+-\d+-\d+)?( (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?)?/;
 
 const EVERY_DAY_AT =
-  /every( \d+)? day(s)?( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until \d+-\d+-\d+)?/;
+  /every( \d+)? day(s)?( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until( \d+-\d+-\d+)?( (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?)?/;
 
 const EVERY_WEEK_ON =
-  /every( \d+)? week(s)? on (monday|tuesday|wednesday|thursday|friday|saturday|sunday)( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until \d+-\d+-\d+)?/;
+  /every( \d+)? week(s)? on (monday|tuesday|wednesday|thursday|friday|saturday|sunday)( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until( \d+-\d+-\d+)?( (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?)?/;
 
 const EVERY_MONTH_ON =
-  /every( \d+)? month(s)? on the (\d+(th|rd|st|nd)|((first|second|third|fourth|fifth) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)))( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until \d+-\d+-\d+)?/;
+  /every( \d+)? month(s)? on the (\d+(th|rd|st|nd)|((first|second|third|fourth|fifth) (monday|tuesday|wednesday|thursday|friday|saturday|sunday)))( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until( \d+-\d+-\d+)?( (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?)?/;
 
 const EVERY_YEAR_ON =
-  /every( \d+)? year(s)? on( the)? \d+(th|rd|st|nd) of (jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until \d+-\d+-\d+)?/;
+  /every( \d+)? year(s)? on( the)? \d+(th|rd|st|nd) of (jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)( at (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?( until( \d+-\d+-\d+)?( (?:([01]?\d|2[0-3]):([0-5]?\d)(:([0-5]?\d))?))?)?/;
 
 const DAY_OCCURENCE = /(first|second|third|fourth|fifth)/;
 
@@ -37,20 +43,78 @@ const MONTH_DAY = /\d+(th|rd|st|nd)/;
 const MONTH =
   /(jan(uary)?|feb(ruary)?|mar(ch)?|apr(il)?|may|jun(e)?|jul(y)?|aug(ust)?|sep(tember)?|oct(ober)?|nov(ember)?|dec(ember)?)/;
 
-const getDefaults = (): { count: number } => {
+const getDefaults = (): { count: number; dtstart: Date } => {
   return {
     count: 30, // default for 30 days
+    dtstart: DateTime.now().setZone(UTC).toJSDate(),
   };
+};
+
+const convertTimeToLocalTimeZone = (
+  zone: string,
+  hour?: number,
+  minute?: number,
+  second?: number
+): DateTime => {
+  return DateTime.fromObject({ hour, minute, second, zone }).setZone(UTC);
+};
+
+const defaultIfNaN = (value?: number): number | undefined =>
+  isNaN(value) ? undefined : value;
+
+const extractTime = (
+  spec: string,
+  zone: string
+):
+  | { byhour?: [number]; byminute?: [number]; bysecond?: [number] }
+  | undefined => {
+  const untilTest = spec.match(UNTIL_SPEC);
+  if (untilTest?.length) {
+    return undefined;
+  }
+  const time = spec.match(TIME_SPEC);
+  if (time?.length) {
+    const [hour, minute, second] = spec.match(NUMBER);
+    const parsedHour = parseInt(hour);
+    const parsedMinute = parseInt(minute);
+    const parsedSecond = parseInt(second);
+    const convertedTime = convertTimeToLocalTimeZone(
+      zone,
+      defaultIfNaN(parsedHour),
+      defaultIfNaN(parsedMinute),
+      defaultIfNaN(parsedSecond)
+    );
+    return {
+      byhour: [convertedTime.hour],
+      byminute: [convertedTime.minute],
+      bysecond: [convertedTime.second],
+    };
+  }
+  return undefined;
 };
 
 const getUntil = (spec: string, timezone: string): { until?: Date } => {
   const until = spec.match(UNTIL_SPEC);
   if (until?.length) {
-    const [day, month, year] = until[0].match(NUMBER);
+    const dateSpec = until[0].match(DATE_SPEC);
+    let day, month, year, parsedHour, parsedMinute, parsedSecond;
+    if (dateSpec?.length) {
+      [day, month, year] = dateSpec[0].match(NUMBER);
+    }
+    const time = until[0].match(TIME_SPEC);
+    if (time?.length) {
+      const [hour, minute, second] = spec.match(NUMBER);
+      parsedHour = parseInt(hour);
+      parsedMinute = parseInt(minute);
+      parsedSecond = parseInt(second);
+    }
     const dateTime = DateTime.fromObject({
       year,
       month,
       day,
+      hour: defaultIfNaN(parsedHour),
+      minute: defaultIfNaN(parsedMinute),
+      second: defaultIfNaN(parsedSecond),
       zone: timezone,
     });
     return {
@@ -121,45 +185,6 @@ const extractInterval = (spec: string): { interval?: number } => {
     };
   }
   return output;
-};
-
-const convertTimeToLocalTimeZone = (
-  zone: string,
-  hour?: number,
-  minute?: number,
-  second?: number
-): DateTime => {
-  return DateTime.fromObject({ hour, minute, second, zone }).setZone(UTC);
-};
-
-const defaultIfNaN = (value?: number): number | undefined =>
-  isNaN(value) ? undefined : value;
-
-const extractTime = (
-  spec: string,
-  zone: string
-):
-  | { byhour?: [number]; byminute?: [number]; bysecond?: [number] }
-  | undefined => {
-  const time = spec.match(TIME_SPEC);
-  if (time?.length) {
-    const [hour, minute, second] = spec.match(NUMBER);
-    const parsedHour = parseInt(hour);
-    const parsedMinute = parseInt(minute);
-    const parsedSecond = parseInt(second);
-    const convertedTime = convertTimeToLocalTimeZone(
-      zone,
-      defaultIfNaN(parsedHour),
-      defaultIfNaN(parsedMinute),
-      defaultIfNaN(parsedSecond)
-    );
-    return {
-      byhour: [convertedTime.hour],
-      byminute: [convertedTime.minute],
-      bysecond: [convertedTime.second],
-    };
-  }
-  return undefined;
 };
 
 const extractWeekDay = (spec: string): { byweekday?: Weekday } => {
