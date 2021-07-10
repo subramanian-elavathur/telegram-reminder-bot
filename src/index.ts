@@ -5,7 +5,7 @@ import {
 } from "./TimezoneConfigurator";
 import { remindClause } from "./reminders";
 import { SimpleLocalDB } from "./local-db";
-import { updateTracker } from "./tracker";
+import { updateTracker, deactivateTracker } from "./tracker";
 import { DateTime } from "luxon";
 
 require("dotenv").config();
@@ -30,10 +30,12 @@ const reminderDaemon = setInterval(async () => {
     currentSecond.toString()
   );
   if (remindersToSend?.length > 0) {
-    remindersToSend.forEach((each) =>
-      bot.telegram.sendMessage(each.chatId, each.text)
-    );
+    for (const each of remindersToSend) {
+      bot.telegram.sendMessage(each.chatId, each.text);
+      await deactivateTracker(each.chatId.toString(), currentSecond);
+    }
   }
+  reminderLog.unset(currentSecond.toString());
   currentSecond = currentSecond + 1;
 }, 1000);
 

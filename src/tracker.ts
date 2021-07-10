@@ -5,7 +5,6 @@ interface Tracker {
   duration: number;
   reminderText: string;
   timezone: string;
-  active: boolean;
 }
 
 const tracker = new SimpleLocalDB<Tracker[]>(process.env.TRACKER_DB_DIRECTORY);
@@ -36,13 +35,31 @@ export const updateTracker = async (
       updatedTrackers.push({
         id: nextId,
         reminderText: reminderText,
-        active: false,
         duration,
         timezone,
       });
     }
     await tracker.set(user, updatedTrackers);
     return Promise.resolve(true);
+  } catch (e) {
+    console.error(`Could not update user tracker due to error ${e}`);
+    Promise.resolve(false);
+  }
+};
+
+export const deactivateTracker = async (
+  user: string,
+  duration: number
+): Promise<boolean> => {
+  try {
+    const existingTrackersForUser = await tracker.get(user);
+    if (existingTrackersForUser?.length) {
+      const updatedTrackersForUser = existingTrackersForUser.filter(
+        (each) => each.duration !== duration
+      );
+      await tracker.set(user, updatedTrackersForUser);
+      return Promise.resolve(true);
+    }
   } catch (e) {
     console.error(`Could not update user tracker due to error ${e}`);
     Promise.resolve(false);
