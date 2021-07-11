@@ -5,7 +5,7 @@ import {
 } from "./TimezoneConfigurator";
 import { remindClause } from "./reminders";
 import { SimpleLocalDB } from "./local-db";
-import { updateTracker, deactivateTracker } from "./tracker";
+import { updateTracker, deactivateTracker, getTrackers } from "./tracker";
 import { DateTime } from "luxon";
 
 require("dotenv").config();
@@ -42,6 +42,18 @@ const reminderDaemon = setInterval(async () => {
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
 bot.start((ctx) => ctx.reply("What would you like to be reminded of?"));
+
+bot.command("reminders", async (ctx) => {
+  const trackers = await getTrackers(ctx.message.chat.id);
+  if (trackers?.length) {
+    ctx.reply(
+      trackers.reduce((acc, each) => {
+        acc += `${each.id} - ${each.reminderText} (on ${each.duration})\n`; // todo format dates better
+        return acc;
+      }, "")
+    );
+  }
+});
 
 bot.command("help", (ctx) => {
   ctx.reply(

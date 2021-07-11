@@ -20,6 +20,10 @@ const getNextId = async (user: string): Promise<number> => {
   return Promise.resolve(nextId);
 };
 
+export const getTrackers = async (user: string): Promise<Tracker[]> => {
+  return await tracker.get(user);
+};
+
 export const updateTracker = async (
   user: string,
   durations: number[],
