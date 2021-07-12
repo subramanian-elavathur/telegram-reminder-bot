@@ -43,16 +43,26 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 
 bot.start((ctx) => ctx.reply("What would you like to be reminded of?"));
 
-bot.command("reminders", async (ctx) => {
-  const trackers = await getTrackers(ctx.message.chat.id);
+const formatTime = (epoch: number): string => {
+  return DateTime.fromSeconds(epoch).toLocaleString(DateTime.DATETIME_MED);
+};
+
+const viewReminders = async (userId: string, ctx) => {
+  const trackers = await getTrackers(userId);
   if (trackers?.length) {
     ctx.reply(
       trackers.reduce((acc, each) => {
-        acc += `${each.id} - ${each.reminderText} (on ${each.duration})\n`; // todo format dates better
+        acc += `${each.id} - ${each.reminderText} (on ${formatTime(
+          each.duration
+        )})\n`;
         return acc;
       }, "")
     );
   }
+};
+
+bot.command("reminders", (ctx) => {
+  viewReminders(ctx.message.chat.id, ctx);
 });
 
 bot.command("help", (ctx) => {
@@ -66,6 +76,10 @@ bot.command("help", (ctx) => {
               text: "Change your timezone",
               callback_data: `reset-timezone`,
             },
+            {
+              text: "View your reminders",
+              callback_data: `view-reminders`,
+            },
           ],
         ],
       },
@@ -74,7 +88,11 @@ bot.command("help", (ctx) => {
 });
 
 bot.on("callback_query", (ctx) => {
-  parseResponse(ctx.callbackQuery.data, ctx);
+  if (ctx.callbackQuery.data === "view-reminders") {
+    viewReminders(ctx.from.id, ctx);
+  } else {
+    parseResponse(ctx.callbackQuery.data, ctx);
+  }
   ctx.answerCbQuery();
 });
 
