@@ -7,6 +7,7 @@ import { remindClause } from "./reminders";
 import { SimpleLocalDB } from "./local-db";
 import { updateTracker, deactivateTracker, getTrackers } from "./tracker";
 import { DateTime } from "luxon";
+import * as chunk from "lodash.chunk";
 
 require("dotenv").config();
 const { Telegraf } = require("telegraf");
@@ -56,8 +57,37 @@ const viewReminders = async (userId: string, ctx) => {
           each.duration
         )})\n`;
         return acc;
-      }, "")
+      }, ""),
+      {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "Delete a reminder",
+                callback_data: `delete-reminder`,
+              },
+            ],
+          ],
+        },
+      }
     );
+  }
+};
+
+const createDeleteRemindersButton = async (userId: string, ctx) => {
+  const trackers = await getTrackers(userId);
+  if (trackers?.length) {
+    ctx.reply("Which reminder would you like to delete", {
+      reply_markup: {
+        inline_keyboard: chunk(
+          trackers.map((each) => ({
+            text: `${each.id}`,
+            callback_data: `delete-reminder-${each.id}`,
+          })),
+          6
+        ),
+      },
+    });
   }
 };
 
@@ -90,6 +120,10 @@ bot.command("help", (ctx) => {
 bot.on("callback_query", (ctx) => {
   if (ctx.callbackQuery.data === "view-reminders") {
     viewReminders(ctx.from.id, ctx);
+  } else if (ctx.callbackQuery.data === "delete-reminder") {
+    createDeleteRemindersButton(ctx.from.id, ctx);
+  } else if (ctx.callbackQuery.data.startsWith("delete-reminder")) {
+    ctx.reply("This feature will be implemented shortly");
   } else {
     parseResponse(ctx.callbackQuery.data, ctx);
   }
