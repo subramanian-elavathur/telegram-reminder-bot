@@ -74,6 +74,27 @@ const viewReminders = async (userId: string, ctx) => {
   }
 };
 
+const deleteReminder = async (userId: string, id: string, ctx) => {
+  const trackers = await getTrackers(userId);
+  const tracker = trackers.find((each) => each.id.toString() === id);
+  if (tracker) {
+    await deactivateTracker(userId, tracker.duration);
+    await reminderLog.unset(tracker.duration.toString());
+    ctx.editMessageText(
+      `Reminder with id: ${id} and message: ${tracker.reminderText} was deleted.`,
+      {
+        inline_message_id: ctx.callbackQuery.id,
+        reply_markup: {},
+      }
+    );
+  } else {
+    ctx.editMessageText(`Reminder with id: ${id} could not be deleted :(`, {
+      inline_message_id: ctx.callbackQuery.id,
+      reply_markup: {},
+    });
+  }
+};
+
 const createDeleteRemindersButton = async (userId: string, ctx) => {
   const trackers = await getTrackers(userId);
   if (trackers?.length) {
@@ -123,7 +144,8 @@ bot.on("callback_query", (ctx) => {
   } else if (ctx.callbackQuery.data === "delete-reminder") {
     createDeleteRemindersButton(ctx.from.id, ctx);
   } else if (ctx.callbackQuery.data.startsWith("delete-reminder")) {
-    ctx.reply("This feature will be implemented shortly");
+    const [a, b, id] = ctx.callbackQuery.data.split("-");
+    deleteReminder(ctx.from.id, id, ctx);
   } else {
     parseResponse(ctx.callbackQuery.data, ctx);
   }
