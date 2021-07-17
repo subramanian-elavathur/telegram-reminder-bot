@@ -15,9 +15,11 @@ export const remindClause = (spec: string, timezone: string): number[] => {
   try {
     // prevent failures
     if (spec.toLowerCase().startsWith("in")) {
-      return parseWhenClauseInSpec(spec);
+      return parseInSpec(spec);
     } else if (spec.toLowerCase().startsWith("on")) {
-      return parseWhenClauseOnSpec(spec, timezone);
+      return parseOnSpec(spec, timezone);
+    } else if (spec.toLowerCase().startsWith("tomorrow")) {
+      return parseOnSpec(spec, timezone, true);
     } else if (spec.toLowerCase().startsWith("every")) {
       return recur(spec, timezone);
     }
@@ -27,21 +29,29 @@ export const remindClause = (spec: string, timezone: string): number[] => {
   }
 };
 
-export const parseWhenClauseOnSpec = (
+export const parseOnSpec = (
   spec: string,
-  zone: string
+  zone: string,
+  tomorrow?: boolean
 ): Duration[] => {
-  let day, month, year, hour, minute, second;
-  let matched = spec.match(ON_DATE);
-  if (matched && matched.length > 0) {
-    matched = matched[0].match(NUMBER);
-    if (matched && matched.length > 0) {
-      const parsedDay = parseInt(matched[0]);
-      const parsedMonth = parseInt(matched[1]);
-      const parsedYear = parseInt(matched[2]);
-      day = isNaN(parsedDay) ? undefined : parsedDay;
-      month = isNaN(parsedMonth) ? undefined : parsedMonth;
-      year = isNaN(parsedYear) ? undefined : parsedYear;
+  let day, month, year, hour, minute, second, matched;
+  if (tomorrow) {
+    const tomorrow = DateTime.utc().plus({ days: 1 });
+    day = tomorrow.day;
+    month = tomorrow.month;
+    year = tomorrow.year;
+  } else {
+    matched = spec.match(ON_DATE);
+    if (matched?.length) {
+      matched = matched[0].match(NUMBER);
+      if (matched?.length) {
+        const parsedDay = parseInt(matched[0]);
+        const parsedMonth = parseInt(matched[1]);
+        const parsedYear = parseInt(matched[2]);
+        day = isNaN(parsedDay) ? undefined : parsedDay;
+        month = isNaN(parsedMonth) ? undefined : parsedMonth;
+        year = isNaN(parsedYear) ? undefined : parsedYear;
+      }
     }
   }
   matched = spec.match(ON_TIME);
@@ -72,7 +82,7 @@ export const parseWhenClauseOnSpec = (
   ];
 };
 
-export const parseWhenClauseInSpec = (spec: string): Duration[] => {
+export const parseInSpec = (spec: string): Duration[] => {
   return [
     Duration.fromObject({
       years: inValueExtractor(spec, IN_YEARS),
