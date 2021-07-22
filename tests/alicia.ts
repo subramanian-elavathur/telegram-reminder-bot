@@ -9,15 +9,25 @@ interface AsyncTest {
 interface Test {
   name: string;
   test: AsyncTest;
+  group: string;
+}
+
+interface GroupedTests {
+  [key: string]: Test[];
 }
 
 interface TestResult {
   name: string;
   status: boolean;
+  group: string;
   message?: string;
 }
 
-const tests: Test[] = [];
+const DEFAULT_TEST_GROUP = "Default";
+
+const tests: GroupedTests = {
+  [DEFAULT_TEST_GROUP]: [],
+};
 
 let promptPrinted = false;
 
@@ -38,8 +48,17 @@ const passedOrFailed = (resolve): PassedOrFailed => ({
   failed: () => resolve(false),
 });
 
-export const test = async (name: string, testImplementation: AsyncTest) => {
-  tests.push({ name, test: testImplementation });
+export const test = async (
+  name: string,
+  testImplementation: AsyncTest,
+  group?: string
+) => {
+  const groupToUpdate = group ?? DEFAULT_TEST_GROUP;
+  const existingTests = tests[groupToUpdate] ?? [];
+  tests[groupToUpdate] = [
+    ...existingTests,
+    { name, test: testImplementation, group: groupToUpdate },
+  ];
 };
 
 const runOneTest = async (test: Test): Promise<TestResult> => {
@@ -52,11 +71,13 @@ const runOneTest = async (test: Test): Promise<TestResult> => {
     });
     result = {
       name: test.name,
+      group: test.group,
       status: await testResults,
     };
   } catch (error) {
     result = {
       name: test.name,
+      group: test.group,
       status: false,
       message: error?.message,
     };
@@ -70,25 +91,41 @@ const runOneTest = async (test: Test): Promise<TestResult> => {
   return Promise.resolve(result);
 };
 
-const run = () => {
+const runTestsInAGroup = async (group: string): Promise<TestResult[]> => {
+  console.log(`Running ${tests[group].length} tests from ${group} group\n`);
+  const results = await Promise.all(tests[group].map(runOneTest));
+  console.log(
+    `\nFinished running ${tests[group].length} tests from ${group} group\n`
+  );
+  return results.filter((each) => !each.status);
+};
+
+const run = async () => {
   banner();
-  console.log(`Running ${tests.length} tests\n`);
-  Promise.all(tests.map(runOneTest)).then((results) => {
-    const failedTests = results.filter((each) => !each.status);
-    if (failedTests?.length) {
+  const totalTests = Object.values(tests).reduce(
+    (acc, each) => [...acc, ...each],
+    []
+  ).length;
+  let failedTests: TestResult[] = [];
+  for (const group in tests) {
+    const failedTestsInGroup = await runTestsInAGroup(group);
+    failedTests = [...failedTests, ...failedTestsInGroup];
+  }
+  if (failedTests?.length) {
+    console.log(
+      `Hey ${failedTests.length}/${totalTests} tests failed, but its going to be ok. Start by going through the list below and adding some logs to figure out whats going wrong:`
+    );
+    failedTests.forEach((each, index) =>
       console.log(
-        `\nHey ${failedTests.length}/${tests.length} tests failed, but its going to be ok. Start by going through the list below and adding some logs to figure out whats going wrong:`
-      );
-      failedTests.forEach((each, index) =>
-        console.log(
-          `${index}. ${each.name}${each.message ? ` (${each.message})` : ""}`
-        )
-      );
-      process.exit(1);
-    }
-    console.log("\nAll tests passed, good vibes :)");
-    process.exit(0);
-  });
+        `${index}. [${each.group}] ${each.name} ${
+          each.message ? `(${each.message})` : ""
+        }`
+      )
+    );
+    process.exit(1);
+  }
+  console.log(`All ${totalTests} tests passed, good vibes :)`);
+  process.exit(0);
 };
 
 export default run;
