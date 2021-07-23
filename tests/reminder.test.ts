@@ -1,7 +1,13 @@
-import { test } from "./alicia";
+import { before, test, after } from "./alicia";
 import { Settings, DateTime } from "luxon";
 
 const now = Settings.now;
+const group = "reminders";
+
+before((done) => {
+  Settings.now = new Date(2021, 6, 22);
+  done();
+}, group);
 
 test(
   "Testing luxon mock",
@@ -10,5 +16,10 @@ test(
     log(DateTime.local().toISO());
     passed();
   },
-  "reminders"
+  group
 );
+
+after((done) => {
+  Settings.now = now;
+  done();
+}, group);

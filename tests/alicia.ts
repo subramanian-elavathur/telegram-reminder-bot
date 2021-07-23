@@ -2,6 +2,10 @@ interface PassedOrFailed {
   passed: () => void;
   failed: () => void;
 }
+
+interface BeforeAfter {
+  (done: () => void): void;
+}
 interface AsyncTest {
   (passedOrFailed: PassedOrFailed, log: (message: string) => void): void;
 }
@@ -12,8 +16,14 @@ interface Test {
   group: string;
 }
 
+interface TestGroup {
+  before?: BeforeAfter;
+  after?: BeforeAfter;
+  tests: Test[];
+}
+
 interface GroupedTests {
-  [key: string]: Test[];
+  [key: string]: TestGroup;
 }
 
 interface TestResult {
@@ -25,8 +35,10 @@ interface TestResult {
 
 const DEFAULT_TEST_GROUP = "Default";
 
-const tests: GroupedTests = {
-  [DEFAULT_TEST_GROUP]: [],
+const testStore: GroupedTests = {
+  [DEFAULT_TEST_GROUP]: {
+    tests: [],
+  },
 };
 
 let promptPrinted = false;
@@ -48,17 +60,32 @@ const passedOrFailed = (resolve): PassedOrFailed => ({
   failed: () => resolve(false),
 });
 
-export const test = async (
+export const before = (fn: BeforeAfter, group?: string) => {
+  const groupToUpdate = group ?? DEFAULT_TEST_GROUP;
+  const existingGroup = testStore[groupToUpdate] ?? { tests: [] };
+  testStore[groupToUpdate] = { ...existingGroup, before: fn };
+};
+
+export const after = (fn: BeforeAfter, group?: string) => {
+  const groupToUpdate = group ?? DEFAULT_TEST_GROUP;
+  const existingGroup = testStore[groupToUpdate] ?? { tests: [] };
+  testStore[groupToUpdate] = { ...existingGroup, after: fn };
+};
+
+export const test = (
   name: string,
   testImplementation: AsyncTest,
   group?: string
 ) => {
   const groupToUpdate = group ?? DEFAULT_TEST_GROUP;
-  const existingTests = tests[groupToUpdate] ?? [];
-  tests[groupToUpdate] = [
-    ...existingTests,
-    { name, test: testImplementation, group: groupToUpdate },
-  ];
+  const existingGroup = testStore[groupToUpdate] ?? { tests: [] };
+  testStore[groupToUpdate] = {
+    ...existingGroup,
+    tests: [
+      ...existingGroup.tests,
+      { name, test: testImplementation, group: groupToUpdate },
+    ],
+  };
 };
 
 const runOneTest = async (test: Test): Promise<TestResult> => {
@@ -91,23 +118,42 @@ const runOneTest = async (test: Test): Promise<TestResult> => {
   return Promise.resolve(result);
 };
 
+const runBeforeOrAfter = async (beforeAfter: BeforeAfter): Promise<boolean> => {
+  return new Promise((resolve) => {
+    try {
+      const result = beforeAfter(() => resolve(true));
+    } catch {
+      resolve(false);
+    }
+  });
+};
+
 const runTestsInAGroup = async (group: string): Promise<TestResult[]> => {
-  console.log(`Running ${tests[group].length} tests from ${group} group\n`);
-  const results = await Promise.all(tests[group].map(runOneTest));
-  console.log(
-    `\nFinished running ${tests[group].length} tests from ${group} group\n`
-  );
+  const { before, tests, after } = testStore[group];
+  console.log(`Running ${tests.length} tests from ${group} group\n`);
+  if (before) {
+    console.log(`Running: Before script`);
+    await runBeforeOrAfter(before);
+    console.log(`Finished: Before script`);
+  }
+  const results = await Promise.all(tests.map(runOneTest));
+  if (after) {
+    console.log(`Running: After script`);
+    await runBeforeOrAfter(after);
+    console.log(`Finished: After script`);
+  }
+  console.log(`\nFinished running ${tests.length} tests from ${group} group\n`);
   return results.filter((each) => !each.status);
 };
 
 const run = async () => {
   banner();
-  const totalTests = Object.values(tests).reduce(
-    (acc, each) => [...acc, ...each],
+  const totalTests = Object.values(testStore).reduce(
+    (acc, each) => [...acc, ...each.tests],
     []
   ).length;
   let failedTests: TestResult[] = [];
-  for (const group in tests) {
+  for (const group in testStore) {
     const failedTestsInGroup = await runTestsInAGroup(group);
     failedTests = [...failedTests, ...failedTestsInGroup];
   }
