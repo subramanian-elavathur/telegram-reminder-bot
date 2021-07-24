@@ -4,7 +4,7 @@ interface PassedOrFailed {
 }
 
 interface BeforeAfter {
-  (done: () => void): void;
+  (done: () => void, log: (message: string) => void): void;
 }
 interface AsyncTest {
   (passedOrFailed: PassedOrFailed, log: (message: string) => void): void;
@@ -118,10 +118,13 @@ const runOneTest = async (test: Test): Promise<TestResult> => {
   return Promise.resolve(result);
 };
 
-const runBeforeOrAfter = async (beforeAfter: BeforeAfter): Promise<boolean> => {
+const runBeforeOrAfter = async (
+  beforeAfter: BeforeAfter,
+  log: (message: string) => void
+): Promise<boolean> => {
   return new Promise((resolve) => {
     try {
-      const result = beforeAfter(() => resolve(true));
+      const result = beforeAfter(() => resolve(true), log);
     } catch {
       resolve(false);
     }
@@ -133,13 +136,13 @@ const runTestsInAGroup = async (group: string): Promise<TestResult[]> => {
   console.log(`Running ${tests.length} tests from ${group} group\n`);
   if (before) {
     console.log(`Running: Before script`);
-    await runBeforeOrAfter(before);
+    await runBeforeOrAfter(before, logger("Before"));
     console.log(`Finished: Before script`);
   }
   const results = await Promise.all(tests.map(runOneTest));
   if (after) {
     console.log(`Running: After script`);
-    await runBeforeOrAfter(after);
+    await runBeforeOrAfter(after, logger("After"));
     console.log(`Finished: After script`);
   }
   console.log(`\nFinished running ${tests.length} tests from ${group} group\n`);
