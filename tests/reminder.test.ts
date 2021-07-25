@@ -1,5 +1,5 @@
 import { before, test, after } from "./alicia";
-import { Settings, DateTime } from "luxon";
+import { Settings } from "luxon";
 import { remindClause } from "../src/reminders";
 
 const now = Settings.now;
@@ -12,12 +12,15 @@ before((done, log) => {
 }, group);
 
 test(
-  "Reminder In Clause",
-  ({ passed, failed }, log) => {
-    remindClause("in 2 hours", "Asia/Kolkata")[0] === 7200000
-      ? passed()
-      : failed();
-  },
+  "In Clause 1",
+  (check) => check(7200000, remindClause("in 2 hours", "Asia/Kolkata")[0]),
+  group
+);
+
+test(
+  "In Clause 2",
+  (check) =>
+    check(7320000, remindClause("in 2 hours and 2 minutes", "Asia/Kolkata")[0]),
   group
 );
 

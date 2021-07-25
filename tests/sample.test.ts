@@ -1,15 +1,15 @@
 import { test } from "./alicia";
 
-test("Gramercy Park", ({ passed }, log) => {
+test("Gramercy Park", (check, log) => {
   setTimeout(() => {
     log("Just good vibes");
-    passed();
+    check(true, false);
   }, 2000);
 });
 
-test("Fallin", ({ failed }) => {
+test("Fallin", (check) => {
   setTimeout(() => {
-    failed();
+    check(true, true);
   }, 2000);
 });
 
@@ -17,6 +17,6 @@ test("Show me love", () => {
   throw new Error("I keep on fallin");
 });
 
-test("Underdog", ({ passed }) => {
-  passed();
+test("Underdog", (check) => {
+  check(true, true);
 });

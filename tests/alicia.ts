@@ -1,13 +1,12 @@
-interface PassedOrFailed {
-  passed: () => void;
-  failed: () => void;
+interface Check {
+  (expected: any, actual: any): Promise<boolean>;
 }
 
 interface BeforeAfter {
   (done: () => void, log: (message: string) => void): void;
 }
 interface AsyncTest {
-  (passedOrFailed: PassedOrFailed, log: (message: string) => void): void;
+  (check: Check, log: (message: string) => void): void;
 }
 
 interface Test {
@@ -55,10 +54,7 @@ const banner = () => {
 const logger = (name: string) => (message: string) =>
   console.log(`Log: ${name}: ${message}`);
 
-const passedOrFailed = (resolve): PassedOrFailed => ({
-  passed: () => resolve(true),
-  failed: () => resolve(false),
-});
+const check = (resolve) => (expected, actual) => resolve(expected === actual);
 
 export const before = (fn: BeforeAfter, group?: string) => {
   const groupToUpdate = group ?? DEFAULT_TEST_GROUP;
@@ -94,7 +90,7 @@ const runOneTest = async (test: Test): Promise<TestResult> => {
   let result: TestResult;
   try {
     const testResults = new Promise<boolean>((resolve) => {
-      test.test(passedOrFailed(resolve), logger(test.name));
+      test.test(check(resolve), logger(test.name));
     });
     result = {
       name: test.name,
@@ -124,7 +120,7 @@ const runBeforeOrAfter = async (
 ): Promise<boolean> => {
   return new Promise((resolve) => {
     try {
-      const result = beforeAfter(() => resolve(true), log);
+      beforeAfter(() => resolve(true), log);
     } catch {
       resolve(false);
     }
