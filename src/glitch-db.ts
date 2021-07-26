@@ -1,17 +1,20 @@
 const fs = require("fs/promises");
-export class SimpleLocalDB<Type> {
+export class GlitchDB<Type> {
   #localDir: string;
   #data: {
     [key: string]: Type;
   };
+  #initComplete: boolean;
 
   constructor(localDir: string) {
     this.#localDir = localDir;
     this.#data = {};
-    this.init();
   }
 
-  async init() {
+  async #init() {
+    if (this.#initComplete) {
+      return; // no need to re-init
+    }
     console.log(`Checking if specified path ${this.#localDir} exists`);
     let stat;
     try {
@@ -20,22 +23,23 @@ export class SimpleLocalDB<Type> {
       console.log(`Directory does not exist - will create`);
       await fs.mkdir(this.#localDir, { recursive: true });
       console.log(`Directory created, lets go!`);
+      this.#initComplete = true;
     }
     if (stat) {
       if (!stat.isDirectory()) {
         throw new Error(
-          `Specified path ${
-            this.#localDir
-          } exists but is not a directory. Exiting`
+          `Specified path ${this.#localDir} exists but is not a directory`
         );
       } else {
         console.log(`Directory already exists, lets go!`);
+        this.#initComplete = true;
       }
     }
   }
 
   async exists(key: string): Promise<boolean> {
-    const keyPath = this.getKeyPath(key);
+    await this.#init();
+    const keyPath = this.#getKeyPath(key);
     let stat;
     try {
       stat = await fs.stat(keyPath);
@@ -53,9 +57,10 @@ export class SimpleLocalDB<Type> {
   }
 
   async get(key: string): Promise<Type> {
+    await this.#init();
     const exists = await this.exists(key);
     if (exists) {
-      const data = await fs.readFile(this.getKeyPath(key), {
+      const data = await fs.readFile(this.#getKeyPath(key), {
         encoding: "utf8",
       });
       return Promise.resolve(JSON.parse(data));
@@ -63,14 +68,15 @@ export class SimpleLocalDB<Type> {
     return Promise.resolve(undefined);
   }
 
-  getKeyPath(key: string): string {
+  #getKeyPath(key: string): string {
     return `${this.#localDir}/${key}.json`;
   }
 
   async set(key: string, value: Type): Promise<boolean> {
+    await this.#init();
     this.#data[key] = value;
     try {
-      await fs.writeFile(this.getKeyPath(key), JSON.stringify(value));
+      await fs.writeFile(this.#getKeyPath(key), JSON.stringify(value));
       return Promise.resolve(true);
     } catch (e) {
       console.log(`Error setting value, received exception ${e}`);
@@ -79,10 +85,11 @@ export class SimpleLocalDB<Type> {
   }
 
   async unset(key: string): Promise<boolean> {
+    await this.#init();
     const exists = await this.exists(key);
     if (exists) {
       try {
-        await fs.rm(this.getKeyPath(key));
+        await fs.rm(this.#getKeyPath(key));
         return Promise.resolve(true);
       } catch (e) {
         return Promise.resolve(false);

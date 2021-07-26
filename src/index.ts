@@ -4,7 +4,7 @@ import {
   getTimezone,
 } from "./TimezoneConfigurator";
 import { remindClause } from "./reminders";
-import { SimpleLocalDB } from "./local-db";
+import { GlitchDB } from "./glitch-db";
 import { updateTracker, deactivateTracker, getTrackers } from "./tracker";
 import { DateTime } from "luxon";
 import * as chunk from "lodash.chunk";
@@ -20,7 +20,7 @@ interface ReminderLogEntry {
   chatId: number;
 }
 
-const reminderLog = new SimpleLocalDB<ReminderLogEntry[]>(
+const reminderLog = new GlitchDB<ReminderLogEntry[]>(
   process.env.REMINDERS_DB_DIRECTORY
 );
 

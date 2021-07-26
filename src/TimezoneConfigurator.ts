@@ -1,10 +1,10 @@
 import { Context } from "telegraf";
 import TIMEZONES from "./IANATimezone";
 import * as chunk from "lodash.chunk";
-import { SimpleLocalDB } from "./local-db";
+import { GlitchDB } from "./glitch-db";
 require("dotenv").config();
 
-const usersTimezone = new SimpleLocalDB(process.env.TIMEZONE_DB_DIRECTORY);
+const usersTimezone = new GlitchDB(process.env.TIMEZONE_DB_DIRECTORY);
 
 export const getUserId = (ctx: Context) => ctx.from.id.toString();
 

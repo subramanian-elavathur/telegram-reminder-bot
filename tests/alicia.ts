@@ -133,11 +133,11 @@ const runTestsInAGroup = async (group: string): Promise<TestResult[]> => {
   if (before) {
     console.log(`Running: Before script`);
     await runBeforeOrAfter(before, logger("Before"));
-    console.log(`Finished: Before script`);
+    console.log(`Finished: Before script\n`);
   }
   const results = await Promise.all(tests.map(runOneTest));
   if (after) {
-    console.log(`Running: After script`);
+    console.log(`\nRunning: After script`);
     await runBeforeOrAfter(after, logger("After"));
     console.log(`Finished: After script`);
   }
@@ -153,6 +153,9 @@ const run = async () => {
   ).length;
   let failedTests: TestResult[] = [];
   for (const group in testStore) {
+    if (!testStore[group].tests.length) {
+      continue;
+    }
     const failedTestsInGroup = await runTestsInAGroup(group);
     failedTests = [...failedTests, ...failedTestsInGroup];
   }

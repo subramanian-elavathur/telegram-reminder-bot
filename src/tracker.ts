@@ -1,4 +1,4 @@
-import { SimpleLocalDB } from "./local-db";
+import { GlitchDB } from "./glitch-db";
 
 interface Tracker {
   id: number;
@@ -7,8 +7,8 @@ interface Tracker {
   timezone: string;
 }
 
-const tracker = new SimpleLocalDB<Tracker[]>(process.env.TRACKER_DB_DIRECTORY);
-const id = new SimpleLocalDB<number>(`${process.env.TRACKER_DB_DIRECTORY}/id`);
+const tracker = new GlitchDB<Tracker[]>(process.env.TRACKER_DB_DIRECTORY);
+const id = new GlitchDB<number>(`${process.env.TRACKER_DB_DIRECTORY}/id`);
 
 const getNextId = async (user: string): Promise<number> => {
   const existingId = await id.get(user);
