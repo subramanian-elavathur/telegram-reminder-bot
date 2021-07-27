@@ -1,4 +1,4 @@
-import { before, test, after } from "./alicia";
+import { before, test, after } from "good-vibes";
 import { Settings } from "luxon";
 import { remindClause } from "../src/reminders";
 

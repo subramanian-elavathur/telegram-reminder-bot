@@ -3,7 +3,7 @@ const path = require("path");
 const os = require("os");
 
 import { GlitchDB } from "../src/glitch-db";
-import { before, test, after } from "./alicia";
+import { before, test, after } from "good-vibes";
 
 const group = "Glitch DB";
 let tempDirectory: string;
