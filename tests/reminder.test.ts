@@ -13,21 +13,31 @@ before((done, log) => {
 
 test(
   "In Clause 1",
-  (check) => check(7200000, remindClause("in 2 hours", "Asia/Kolkata")[0]),
+  (verify) =>
+    verify
+      .check(7200000)
+      .equals(remindClause("in 2 hours", "Asia/Kolkata")[0])
+      .done(),
   group
 );
 
 test(
   "In Clause 2",
-  (check) =>
-    check(7320000, remindClause("in 2 hours and 2 minutes", "Asia/Kolkata")[0]),
+  (v) =>
+    v
+      .check(7320000)
+      .equals(remindClause("in 2 hours and 2 minutes", "Asia/Kolkata")[0])
+      .done(),
   group
 );
 
 test(
   "On Clause",
-  (check) =>
-    check(99530000, remindClause("On 1-1-1900 at 09:00", "Asia/Kolkata")),
+  (v) =>
+    v
+      .check(99530000)
+      .equals(remindClause("On 1-1-1900 at 09:00", "Asia/Kolkata"))
+      .done(),
   group
 );
 

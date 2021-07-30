@@ -22,25 +22,31 @@ before(async (done, log) => {
 
 test(
   "Test retrieve",
-  async (check) => {
-    check("value-1", await glitchDB.get("key-1"));
+  async (v) => {
+    v.check("value-1")
+      .equals(await glitchDB.get("key-1"))
+      .done();
   },
   group
 );
 
 test(
   "Test exists",
-  async (check) => {
-    check(true, await glitchDB.exists("key-1"));
+  async (v) => {
+    v.check(true)
+      .equals(await glitchDB.exists("key-1"))
+      .done();
   },
   group
 );
 
 test(
   "Test unset",
-  async (check) => {
+  async (v) => {
     await glitchDB.unset("key-3");
-    check(undefined, await glitchDB.get("key-3"));
+    v.check(undefined)
+      .equals(await glitchDB.get("key-3"))
+      .done();
   },
   group
 );
