@@ -1,4 +1,4 @@
-import { GlitchDB } from "./glitch-db";
+import GlitchDB from "glitch-db";
 
 interface Tracker {
   id: number;

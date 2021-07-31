@@ -1,7 +1,7 @@
 import { Context } from "telegraf";
 import TIMEZONES from "./IANATimezone";
 import * as chunk from "lodash.chunk";
-import { GlitchDB } from "./glitch-db";
+import GlitchDB from "glitch-db";
 require("dotenv").config();
 
 const usersTimezone = new GlitchDB(process.env.TIMEZONE_DB_DIRECTORY);

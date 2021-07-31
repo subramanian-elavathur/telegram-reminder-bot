@@ -4,7 +4,7 @@ import {
   getTimezone,
 } from "./TimezoneConfigurator";
 import { remindClause } from "./reminders";
-import { GlitchDB } from "./glitch-db";
+import GlitchDB from "glitch-db";
 import { updateTracker, deactivateTracker, getTrackers } from "./tracker";
 import { DateTime } from "luxon";
 import * as chunk from "lodash.chunk";
