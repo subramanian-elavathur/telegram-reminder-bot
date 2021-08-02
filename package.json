@@ -4,8 +4,9 @@
   "description": "A telegram bot for recurring reminders",
   "main": "index.js",
   "scripts": {
-    "start": "npx tsc && node dist/src/index.js",
-    "test": "npx tsc && node dist/tests/tests.js"
+    "build": "npx tsc",
+    "start": "npm run build && node dist/src/index.js",
+    "test": "npm run build && node dist/tests/tests.js"
   },
   "repository": {
     "type": "git",
