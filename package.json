@@ -27,12 +27,12 @@
   "homepage": "https://github.com/subramanian-elavathur/telegram-reminder-bot#readme",
   "devDependencies": {
     "@types/node": "^16.4.8",
-    "good-vibes": "^0.1.2",
+    "good-vibes": "^0.2.1",
     "typescript": "^4.3.5"
   },
   "dependencies": {
     "dotenv": "^10.0.0",
-    "glitch-db": "^0.0.2",
+    "glitch-db": "^0.0.4",
     "lodash.chunk": "^4.2.0",
     "luxon": "^1.28.0",
     "rrule": "^2.6.4",
