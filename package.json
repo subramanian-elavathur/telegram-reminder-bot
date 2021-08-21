@@ -27,7 +27,7 @@
   "homepage": "https://github.com/subramanian-elavathur/telegram-reminder-bot#readme",
   "devDependencies": {
     "good-vibes": "^0.9.0",
-    "@types/node": "^16.6.2",
+    "@types/node": "^16.7.1",
     "typescript": "^4.3.5"
   },
   "dependencies": {
