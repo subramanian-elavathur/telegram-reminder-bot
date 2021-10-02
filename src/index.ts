@@ -1,3 +1,4 @@
+require("dotenv").config();
 import {
   startConfigurator,
   parseResponse,
@@ -9,7 +10,6 @@ import { updateTracker, deactivateTracker, getTrackers } from "./tracker";
 import { DateTime } from "luxon";
 import * as chunk from "lodash.chunk";
 
-require("dotenv").config();
 const { Telegraf } = require("telegraf");
 
 const pendingDuration = new Set();
