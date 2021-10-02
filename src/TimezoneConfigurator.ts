@@ -1,10 +1,10 @@
 import { Context } from "telegraf";
 import TIMEZONES from "./IANATimezone";
 import * as chunk from "lodash.chunk";
-import GlitchDB from "glitch-db";
+import database from "./database";
 require("dotenv").config();
 
-const usersTimezone = new GlitchDB(process.env.TIMEZONE_DB_DIRECTORY);
+const usersTimezone = database.getPartition("timezones");
 
 export const getUserId = (ctx: Context) => ctx.from.id.toString();
 

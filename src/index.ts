@@ -4,7 +4,7 @@ import {
   getTimezone,
 } from "./TimezoneConfigurator";
 import { remindClause } from "./reminders";
-import GlitchDB from "glitch-db";
+import database from "./database";
 import { updateTracker, deactivateTracker, getTrackers } from "./tracker";
 import { DateTime } from "luxon";
 import * as chunk from "lodash.chunk";
@@ -20,9 +20,7 @@ interface ReminderLogEntry {
   chatId: number;
 }
 
-const reminderLog = new GlitchDB<ReminderLogEntry[]>(
-  process.env.REMINDERS_DB_DIRECTORY
-);
+const reminderLog = database.getPartition<ReminderLogEntry[]>("reminders");
 
 let currentSecond = Math.floor(DateTime.now().toMillis() / 1000);
 
