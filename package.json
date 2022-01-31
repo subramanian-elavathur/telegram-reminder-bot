@@ -31,7 +31,7 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
-    "dotenv": "^14.3.2",
+    "dotenv": "^15.0.0",
     "glitch-db": "^0.8.0",
     "lodash.chunk": "^4.2.0",
     "luxon": "^1.28.0",
